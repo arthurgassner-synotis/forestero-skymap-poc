@@ -506,10 +506,12 @@ name = "forestero"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
+    { name = "geodatasets" },
     { name = "geopandas" },
     { name = "jupyter" },
     { name = "matplotlib" },
     { name = "openpyxl" },
+    { name = "osmnx" },
     { name = "pandas" },
     { name = "pre-commit" },
     { name = "rasterio" },
@@ -519,10 +521,12 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "geodatasets", specifier = ">=2026.1.0" },
     { name = "geopandas", specifier = ">=1.1.2" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "openpyxl", specifier = ">=3.1.5" },
+    { name = "osmnx", specifier = ">=2.1.0" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "rasterio", specifier = ">=1.5.0" },
@@ -537,6 +541,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/30/3e/a80a8c077fd798951169626cde3e239adeba7dab75deb3555716415bd9b0/fqdn-1.5.1.tar.gz", hash = "sha256:105ed3677e767fb5ca086a0c1f4bb66ebc3c100be518f0e0d755d9eae164d89f", size = 6015, upload-time = "2021-03-11T07:16:29.08Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cf/58/8acf1b3e91c58313ce5cb67df61001fc9dcd21be4fadb76c1a2d540e09ed/fqdn-1.5.1-py3-none-any.whl", hash = "sha256:3a179af3761e4df6eb2e026ff9e1a3033d3587bf980a0b1b2e1e5d08d7358014", size = 9121, upload-time = "2021-03-11T07:16:28.351Z" },
+]
+
+[[package]]
+name = "geodatasets"
+version = "2026.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pooch" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/48/13/8c32e106bdbeece787e779a72f06f2ee7c4ca03fb6f147334a7f5ab9df53/geodatasets-2026.1.0.tar.gz", hash = "sha256:28259126b58c8efd3119536038b563a178c8a7400a1d6d307460aae0f7f945c3", size = 806220, upload-time = "2026-01-01T08:22:39.137Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/79/5a/f749ead6d2bc42a68ce4016fe96572b90165ed690f99869732cf9c547682/geodatasets-2026.1.0-py3-none-any.whl", hash = "sha256:84c0173e92ee818783cf90d7a142c2ea76b4b4d02a0fb9451873a3de5765f90b", size = 22007, upload-time = "2026-01-01T08:22:37.647Z" },
 ]
 
 [[package]]
@@ -1246,6 +1262,15 @@ wheels = [
 ]
 
 [[package]]
+name = "networkx"
+version = "3.6.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/6a/51/63fe664f3908c97be9d2e4f1158eb633317598cfa6e1fc14af5383f17512/networkx-3.6.1.tar.gz", hash = "sha256:26b7c357accc0c8cde558ad486283728b65b6a95d85ee1cd66bafab4c8168509", size = 2517025, upload-time = "2025-12-08T17:02:39.908Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9e/c9/b2622292ea83fbb4ec318f5b9ab867d0a28ab43c5717bb85b0a5f6b3b0a4/networkx-3.6.1-py3-none-any.whl", hash = "sha256:d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762", size = 2068504, upload-time = "2025-12-08T17:02:38.159Z" },
+]
+
+[[package]]
 name = "nodeenv"
 version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1342,6 +1367,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
+]
+
+[[package]]
+name = "osmnx"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "geopandas" },
+    { name = "networkx" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "requests" },
+    { name = "shapely" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/30/65083209545c8ca40f9d2fc76d39d4ef9153aa380c62881ed1971123990c/osmnx-2.1.0.tar.gz", hash = "sha256:0175ab8710bb973cb7cc76c33eeddd670d9d2f4b444da08a1080c470844add2b", size = 90147, upload-time = "2026-02-16T22:51:06.522Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/92/4d/ee50f0b6b4532d44c0db5415b7ad896a4d9651dcd7aa9f5729a25fc6f502/osmnx-2.1.0-py3-none-any.whl", hash = "sha256:9d6e7692321a4e40c5ca68ef8b85fbfb550244c4135fe9b55cfd4f810a5c8e2e", size = 104405, upload-time = "2026-02-16T22:51:05.386Z" },
 ]
 
 [[package]]
@@ -1492,6 +1534,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/19/56/8d4c30c8a1d07013911a8fdbd8f89440ef9f08d07a1b50ab8ca8be5a20f9/platformdirs-4.9.4.tar.gz", hash = "sha256:1ec356301b7dc906d83f371c8f487070e99d3ccf9e501686456394622a01a934", size = 28737, upload-time = "2026-03-05T18:34:13.271Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/63/d7/97f7e3a6abb67d8080dd406fd4df842c2be0efaf712d1c899c32a075027c/platformdirs-4.9.4-py3-none-any.whl", hash = "sha256:68a9a4619a666ea6439f2ff250c12a853cd1cbd5158d258bd824a7df6be2f868", size = 21216, upload-time = "2026-03-05T18:34:12.172Z" },
+]
+
+[[package]]
+name = "pooch"
+version = "1.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "platformdirs" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/83/43/85ef45e8b36c6a48546af7b266592dc32d7f67837a6514d111bced6d7d75/pooch-1.9.0.tar.gz", hash = "sha256:de46729579b9857ffd3e741987a2f6d5e0e03219892c167c6578c0091fb511ed", size = 61788, upload-time = "2026-01-30T19:15:09.649Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2a/2d/d4bf65e47cea8ff2c794a600c4fd1273a7902f268757c531e0ee9f18aa58/pooch-1.9.0-py3-none-any.whl", hash = "sha256:f265597baa9f760d25ceb29d0beb8186c243d6607b0f60b83ecf14078dbc703b", size = 67175, upload-time = "2026-01-30T19:15:08.36Z" },
 ]
 
 [[package]]
