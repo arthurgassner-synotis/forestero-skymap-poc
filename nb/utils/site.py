@@ -50,6 +50,18 @@ class Site:
 
         return sentinel_scenes
 
+    @cached_property
+    def cropped_sentinel_scenes(self) -> list["SentinelScene"]:
+        sentinel_scenes = []
+        for scene_id in self.scene_ids:
+            sentinel_scene = SentinelScene.from_scene_id(scene_id)
+
+            sentinel_scene.crop(self.bbox)
+
+            sentinel_scenes.append(sentinel_scene)
+
+        return sentinel_scenes
+
     def add_scenes(self, search_results: list[SearchResult]) -> None:
         bbox_geom = box(*self.bbox)
         added_scene_ids = set()
@@ -59,6 +71,9 @@ class Site:
 
         self.scene_ids.update(added_scene_ids)
         logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
+
+    def plot_over_scenes(self) -> None:
+        pass
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))

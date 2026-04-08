@@ -47,6 +47,46 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
+    def crop(self, bbox: tuple[float, float, float, float]) -> None:
+        """Crop the scene in-place using an EPSG:4326 bounding box.
+        bbox format: (min_lon, min_lat, max_lon, max_lat)
+        """
+
+        min_lon, min_lat, max_lon, max_lat = bbox
+
+        # EPSG:4326 -> self._crs conversion
+        n_left, n_bottom, n_right, n_top = transform_bounds("EPSG:4326", self._crs, min_lon, min_lat, max_lon, max_lat)
+
+        # Figure out pixel resolution
+        height, width = self.red.shape
+        x_res = (self._bounds.right - self._bounds.left) / width
+        y_res = (self._bounds.top - self._bounds.bottom) / height
+
+        # Spatial coordinates -> pixel indices conversion
+        # (row 0 is at _bounds.top, col 0 is at _bounds.left)
+        col_min = int(max(0, (n_left - self._bounds.left) / x_res))
+        col_max = int(min(width, (n_right - self._bounds.left) / x_res))
+        row_min = int(max(0, (self._bounds.top - n_top) / y_res))
+        row_max = int(min(height, (self._bounds.top - n_bottom) / y_res))
+
+        # Ensure cropping makes sense
+        if col_min >= col_max or row_min >= row_max:
+            raise ValueError("The provided bounding box does not intersect this scene.")
+
+        # Crop
+        self.red = self.red[row_min:row_max, col_min:col_max]
+        self.green = self.green[row_min:row_max, col_min:col_max]
+        self.blue = self.blue[row_min:row_max, col_min:col_max]
+        self.nir = self.nir[row_min:row_max, col_min:col_max]
+        self.swir = self.swir[row_min:row_max, col_min:col_max]
+
+        # Update ._bounds
+        new_left = self._bounds.left + (col_min * x_res)
+        new_right = self._bounds.left + (col_max * x_res)
+        new_top = self._bounds.top - (row_min * y_res)
+        new_bottom = self._bounds.top - (row_max * y_res)
+        self._bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
+
     @staticmethod
     def load_tif(p: Path) -> tuple[np.ndarray, rasterio.coords.BoundingBox, rasterio.crs.CRS]:
         with rasterio.open(p) as src:
