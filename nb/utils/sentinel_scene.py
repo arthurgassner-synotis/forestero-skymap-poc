@@ -47,13 +47,19 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
-    def crop(self, bbox: tuple[float, float, float, float]) -> "SentinelScene":
+    def crop(self, bbox: tuple[float, float, float, float], padding_m: int = 0) -> "SentinelScene":
         """Crop the scene using an EPSG:4326 bounding box (min_lon, min_lat, max_lon, max_lat)"""
 
         min_lon, min_lat, max_lon, max_lat = bbox
 
         # EPSG:4326 -> self._crs conversion
         n_left, n_bottom, n_right, n_top = transform_bounds("EPSG:4326", self._crs, min_lon, min_lat, max_lon, max_lat)
+
+        # Apply padding, assuming self._crs uses meters
+        n_left -= padding_m
+        n_bottom -= padding_m
+        n_right += padding_m
+        n_top += padding_m
 
         # Figure out pixel resolution
         height, width = self.red.shape
