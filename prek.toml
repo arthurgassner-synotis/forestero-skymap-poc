@@ -8,7 +8,7 @@ repo = "https://github.com/astral-sh/ruff-pre-commit"
 rev = "v0.15.9"
 hooks = [
     { id = "ruff-check", args = [
-        "--fix",
+        "--fix", "--select", "I",
     ], types_or = [
         "python",
         "pyi",
