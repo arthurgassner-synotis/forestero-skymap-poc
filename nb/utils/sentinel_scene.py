@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from matplotlib import pyplot as plt
 from rasterio.warp import transform_bounds
 
 from .constants import SENTINEL_SCENES_FOLDERPATH
@@ -46,6 +47,22 @@ class SentinelScene:
         blue = np.power(blue, 1 / gamma)
 
         return np.dstack((red, green, blue))
+
+    def plot(self, bbox: tuple[float, float, float, float] | None = None, padding_m: int = 0) -> None:
+        sentinel_scene = self
+        if bbox is not None:
+            sentinel_scene = self.crop(bbox, padding_m)
+
+        # Map the image pixels to spatial coordinates (meters) using the bounds
+        bounds = sentinel_scene._bounds
+        extent = (0, bounds.right - bounds.left, 0, bounds.top - bounds.bottom)
+
+        # NOTE: extent lets matplotlib handles the tick logic, supplying the bounds
+        plt.imshow(sentinel_scene.processed_rgb, extent=extent)
+
+        plt.title(f"Processed RGB\n {sentinel_scene.scene_id}")
+        plt.xlabel("Easting (m)")
+        plt.ylabel("Northing (m)")
 
     def crop(self, bbox: tuple[float, float, float, float], padding_m: int = 0) -> "SentinelScene":
         """Crop the scene using an EPSG:4326 bounding box (min_lon, min_lat, max_lon, max_lat)"""
