@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
-from pystac.item import PySTACItem
+from pystac.item import Item as PySTACItem
 from pystac_client.client import Client as PySTACClient
 from tqdm import tqdm
 
