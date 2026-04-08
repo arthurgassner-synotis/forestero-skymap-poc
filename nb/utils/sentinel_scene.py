@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import geopandas as gpd
 import numpy as np
 import rasterio
 from matplotlib import pyplot as plt
 from rasterio.warp import transform_bounds
+from shapely import Polygon
 
 from .constants import SENTINEL_SCENES_FOLDERPATH
 
@@ -48,21 +50,26 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
-    def plot(self, bbox: tuple[float, float, float, float] | None = None, padding_m: int = 0) -> None:
+    def plot(self, polygon: Polygon | None = None, padding_m: int = 0) -> None:
         sentinel_scene = self
-        if bbox is not None:
-            sentinel_scene = self.crop(bbox, padding_m)
+        if polygon is not None:
+            sentinel_scene = self.crop(polygon.bounds, padding_m)
 
-        # Map the image pixels to spatial coordinates (meters) using the bounds
+        # Figure out ticks
         bounds = sentinel_scene._bounds
         extent = (0, bounds.right - bounds.left, 0, bounds.top - bounds.bottom)
 
         # NOTE: extent lets matplotlib handles the tick logic, supplying the bounds
         plt.imshow(sentinel_scene.processed_rgb, extent=extent)
 
+        if polygon:
+            gs = gpd.GeoSeries([polygon], crs="EPSG:4326").to_crs(self._crs)
+            gs = gs.translate(xoff=-bounds.left, yoff=-bounds.bottom)  # So the gs aligns with the 0-based extent
+            gs.plot(ax=plt.gca(), color="red", alpha=0.8)
+
         plt.title(f"Processed RGB\n {sentinel_scene.scene_id}")
-        plt.xlabel("Easting (m)")
-        plt.ylabel("Northing (m)")
+        plt.xlabel("m")
+        plt.ylabel("m")
 
     def crop(self, bbox: tuple[float, float, float, float], padding_m: int = 0) -> "SentinelScene":
         """Crop the scene using an EPSG:4326 bounding box (min_lon, min_lat, max_lon, max_lat)"""

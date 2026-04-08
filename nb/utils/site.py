@@ -29,7 +29,7 @@ class Site:
         return gpd.GeoDataFrame(geometry=[e.point for e in self.trees], crs="EPSG:4326")
 
     @property
-    def gs(self) -> gpd.GeoDataFrame:
+    def gs(self) -> gpd.GeoSeries:
         return gpd.GeoSeries([self.polygon], crs="EPSG:4326")
 
     @property
