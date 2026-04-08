@@ -50,15 +50,12 @@ class Site:
 
         return sentinel_scenes
 
-    @cached_property
+    @property
     def cropped_sentinel_scenes(self) -> list["SentinelScene"]:
         sentinel_scenes = []
-        for scene_id in self.scene_ids:
-            sentinel_scene = SentinelScene.from_scene_id(scene_id)
-
-            sentinel_scene.crop(self.bbox)
-
-            sentinel_scenes.append(sentinel_scene)
+        for sentinel_scene in self.sentinel_scenes:
+            cropped_sentinel_scene = sentinel_scene.crop(self.bbox)
+            sentinel_scenes.append(cropped_sentinel_scene)
 
         return sentinel_scenes
 
@@ -74,6 +71,9 @@ class Site:
 
     def plot_over_scenes(self) -> None:
         f, axes = plt.subplots(1, len(self.scene_ids), figsize=(5, 6))
+
+        if not isinstance(axes, list):
+            axes = [axes]
 
         for ax in axes:
             ax.xaxis.set_major_locator(MaxNLocator(nbins=2))

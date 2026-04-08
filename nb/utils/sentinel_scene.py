@@ -47,10 +47,8 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
-    def crop(self, bbox: tuple[float, float, float, float]) -> None:
-        """Crop the scene in-place using an EPSG:4326 bounding box.
-        bbox format: (min_lon, min_lat, max_lon, max_lat)
-        """
+    def crop(self, bbox: tuple[float, float, float, float]) -> "SentinelScene":
+        """Crop the scene using an EPSG:4326 bounding box (min_lon, min_lat, max_lon, max_lat)"""
 
         min_lon, min_lat, max_lon, max_lat = bbox
 
@@ -74,18 +72,20 @@ class SentinelScene:
             raise ValueError("The provided bounding box does not intersect this scene.")
 
         # Crop
-        self.red = self.red[row_min:row_max, col_min:col_max]
-        self.green = self.green[row_min:row_max, col_min:col_max]
-        self.blue = self.blue[row_min:row_max, col_min:col_max]
-        self.nir = self.nir[row_min:row_max, col_min:col_max]
-        self.swir = self.swir[row_min:row_max, col_min:col_max]
+        red = self.red[row_min:row_max, col_min:col_max]
+        green = self.green[row_min:row_max, col_min:col_max]
+        blue = self.blue[row_min:row_max, col_min:col_max]
+        nir = self.nir[row_min:row_max, col_min:col_max]
+        swir = self.swir[row_min:row_max, col_min:col_max]
 
         # Update ._bounds
         new_left = self._bounds.left + (col_min * x_res)
         new_right = self._bounds.left + (col_max * x_res)
         new_top = self._bounds.top - (row_min * y_res)
         new_bottom = self._bounds.top - (row_max * y_res)
-        self._bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
+        bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
+
+        return SentinelScene(_bounds=bounds, _crs=self._crs, scene_id=self.scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir, dt=self.dt)
 
     @staticmethod
     def load_tif(p: Path) -> tuple[np.ndarray, rasterio.coords.BoundingBox, rasterio.crs.CRS]:
