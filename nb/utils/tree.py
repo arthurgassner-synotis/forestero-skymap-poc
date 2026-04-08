@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-from shapely.geometry import Point
-from .constants import GHANA
+
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from shapely.geometry import Point
+
+from .constants import GHANA
 
 
 @dataclass

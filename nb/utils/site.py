@@ -1,11 +1,11 @@
 from dataclasses import dataclass
-from shapely.geometry import Polygon, box, MultiPoint
-import matplotlib.pyplot as plt
-from matplotlib.ticker import StrMethodFormatter, MaxNLocator
-from .constants import GHANA
 
 import geopandas as gpd
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator, StrMethodFormatter
+from shapely.geometry import MultiPoint, Polygon
 
+from .constants import GHANA
 from .tree import Tree
 
 

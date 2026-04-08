@@ -1,6 +1,6 @@
 from pathlib import Path
-import osmnx as ox
 
+import osmnx as ox
 
 ROOT_FOLDERPATH = Path(__file__).parent.parent.parent
 DATA_FOLDERPATH = ROOT_FOLDERPATH / "data"
