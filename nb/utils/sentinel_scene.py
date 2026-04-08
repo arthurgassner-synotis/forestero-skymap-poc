@@ -50,7 +50,7 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
-    def plot(self, polygon: Polygon | None = None, padding_m: int = 0) -> None:
+    def plot(self, polygon: Polygon | None = None, padding_m: int = 100) -> None:
         sentinel_scene = self
         if polygon is not None:
             sentinel_scene = self.crop(polygon.bounds, padding_m)
