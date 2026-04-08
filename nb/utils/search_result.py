@@ -82,7 +82,7 @@ class SearchResult:
     def download_file(url: str, filepath: Path) -> None:
         """Downloads a file using a .part extension to prevent corruption if interrupted."""
         if filepath.exists():
-            print(f"File {filepath} already exists. Skipping...")
+            logger.warning(f"File {filepath} already exists. Skipping...")
             return
 
         part_filepath = filepath.with_suffix(filepath.suffix + ".part")
