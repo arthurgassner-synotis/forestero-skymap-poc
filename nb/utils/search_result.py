@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 @dataclass
 class SearchResult:
-    dt: str
+    dts: list[str]
     bbox: tuple[float, float, float, float]
     scenes: list[PySTACItem]
 
@@ -25,13 +25,14 @@ class SearchResult:
         return dt, scenes
 
     @staticmethod
-    def from_search(dts: list[str], bbox: tuple[float, float, float, float], client: PySTACClient) -> list["SearchResult"]:
+    def from_search(dts: list[str], bbox: tuple[float, float, float, float], client: PySTACClient) -> "SearchResult":
         with ThreadPoolExecutor(max_workers=50) as executor:
             futures = {executor.submit(SearchResult._search_stac, dt, bbox, client): dt for dt in dts}
 
-        dt_to_scenes = {}
+        # Fetch futures
+        agg_scenes = []
         for future in tqdm(as_completed(futures), total=len(dts), desc="Fetching scenes"):
-            dt, scenes = future.result()
-            dt_to_scenes[dt] = scenes
+            _, scenes = future.result()
+            agg_scenes.extend(scenes)
 
-        return [SearchResult(dt=dt, bbox=bbox, scenes=scenes) for dt, scenes in dt_to_scenes.items()]
+        return SearchResult(dts=dts, bbox=bbox, scenes=agg_scenes)
