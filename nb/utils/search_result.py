@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+import numpy as np
 import requests
 from pystac.item import Item as PySTACItem
 from pystac_client.client import Client as PySTACClient
@@ -38,6 +39,10 @@ class SearchResult:
                 kept_scenes.append(scene)
 
         self.scenes = kept_scenes
+
+    def keep_least_cloudy(self) -> None:
+        scene = np.argmin([e.properties["eo:cloud_cover"] for e in self.scenes])
+        self.scenes = [scene]
 
     @staticmethod
     def _search_stac(dt: str, bbox: tuple[float, float, float, float], client: PySTACClient) -> tuple[str, list[PySTACItem]]:
@@ -90,7 +95,7 @@ class SearchResult:
         part_filepath.rename(filepath)
 
     def download(self) -> None:
-        print(f"Downloading {len(self.scenes)} ...")
+        print(f"Downloading {len(self.scenes)} scenes ...")
 
         for scene in self.scenes:
             scene_folder = SENTINEL_SCENES_FOLDERPATH / scene.id
