@@ -9,6 +9,7 @@ dependencies = [
     "geodatasets>=2026.1.0",
     "geopandas>=1.1.2",
     "jupyter>=1.1.1",
+    "loguru>=0.7.3",
     "matplotlib>=3.10.8",
     "openpyxl>=3.1.5",
     "osmnx>=2.1.0",

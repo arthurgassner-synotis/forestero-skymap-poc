@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import requests
+from loguru import logger
 from pystac.item import Item as PySTACItem
 from pystac_client.client import Client as PySTACClient
 from tqdm import tqdm
@@ -33,6 +34,10 @@ class SearchResult:
         return dts
 
     def keep(self, min_date: date = date(1, 1, 1), max_date: date = date(3000, 1, 1)) -> None:
+        if not self.scenes:
+            logger.warning("Search result contains no scene. Skipping.")
+            return
+
         kept_scenes = []
         for dt, scene in zip(self.dts, self.scenes):
             if min_date <= dt <= max_date:
@@ -41,6 +46,10 @@ class SearchResult:
         self.scenes = kept_scenes
 
     def keep_least_cloudy(self) -> None:
+        if not self.scenes:
+            logger.warning("Search result contains no scene. Skipping.")
+            return
+
         scene_idx = np.argmin([e.properties["eo:cloud_cover"] for e in self.scenes])
         self.scenes = [self.scenes[scene_idx]]
 
