@@ -19,6 +19,20 @@ class SearchResult:
     scenes: list[PySTACItem]
 
     @property
+    def is_downloaded(self) -> True:
+        for s in self.scenes:
+            scene_folderpath = SENTINEL_SCENES_FOLDERPATH / s.id
+            if not scene_folderpath.exists():
+                return False
+
+            for band in SENTINEL_BANDS:
+                filepath = scene_folderpath / f"{s.id}_{band}.tif"
+                if not filepath.exists():
+                    return False
+
+        return True
+
+    @property
     def dts(self) -> list[date]:
         dts = []
         for scene in self.scenes:
@@ -106,6 +120,10 @@ class SearchResult:
     def download(self) -> None:
         if not self.scenes:
             logger.warning("Search result contains no scene. Skipping download...")
+            return
+
+        if self.is_downloaded:
+            logger.warning("Search result already downloaded. Skipping download...")
             return
 
         logger.info(f"Downloading {len(self.scenes)} scenes ...")
