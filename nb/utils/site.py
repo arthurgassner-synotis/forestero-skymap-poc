@@ -8,7 +8,6 @@ from shapely.geometry import MultiPoint, Polygon, box
 
 from .constants import GHANA
 from .search_result import SearchResult
-from .sentinel_scene import SentinelScene
 from .tree import Tree
 
 
@@ -17,7 +16,7 @@ class Site:
     trees: list[Tree]
     name: str
     region: str
-    scenes: set[SentinelScene] = field(default_factory=set)
+    scene_ids: set[str] = field(default_factory=set)
 
     @property
     def polygon(self) -> Polygon:
@@ -43,13 +42,13 @@ class Site:
 
     def add_scenes(self, search_results: list[SearchResult]) -> None:
         bbox_geom = box(*self.bbox)
-        added_scenes = set()
+        added_scene_ids = set()
         for search_result in search_results:
             if bbox_geom.intersects(box(*search_result.bbox)):
-                added_scenes.update(search_result.scenes)
+                added_scene_ids.update([e.id for e in search_result.scenes])
 
-        self.scenes.update(added_scenes)
-        logger.info(f"Added {len(added_scenes)} scenes ({len(self.scenes)} total)")
+        self.scene_ids.update(added_scene_ids)
+        logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
