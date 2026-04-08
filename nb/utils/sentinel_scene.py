@@ -11,7 +11,8 @@ from .constants import SENTINEL_SCENES_FOLDERPATH
 
 @dataclass
 class SentinelScene:
-    bounds_32630: rasterio.coords.BoundingBox
+    _bounds: rasterio.coords.BoundingBox
+    _crs: rasterio.crs.CRS
     scene_id: str
     red: np.ndarray
     green: np.ndarray
@@ -23,9 +24,7 @@ class SentinelScene:
     @property
     def bounds(self) -> rasterio.coords.BoundingBox:
         """Returns EPSG:4326 bbox (Lon/Lat)"""
-        converted_bounds = transform_bounds(
-            "EPSG:32631", "EPSG:4326", self.bounds_32630.left, self.bounds_32630.bottom, self.bounds_32630.right, self.bounds_32630.top
-        )
+        converted_bounds = transform_bounds(self._crs, "EPSG:4326", self._bounds.left, self._bounds.bottom, self._bounds.right, self._bounds.top)
         return rasterio.coords.BoundingBox(*converted_bounds)  # (left/lon_min, bottom/lat_min, right/lon_max, top/lat_max)
 
     @property
@@ -49,10 +48,9 @@ class SentinelScene:
         return np.dstack((red, green, blue))
 
     @staticmethod
-    def load_tif(p: Path) -> tuple[np.ndarray, rasterio.coords.BoundingBox]:
+    def load_tif(p: Path) -> tuple[np.ndarray, rasterio.coords.BoundingBox, rasterio.crs.CRS]:
         with rasterio.open(p) as src:
-            assert src.crs == rasterio.crs.CRS.from_epsg(32631)
-            return src.read(1), src.bounds
+            return src.read(1), src.bounds, src.crs
 
     @staticmethod
     def from_scene_id(scene_id: str) -> "SentinelScene":
@@ -65,10 +63,10 @@ class SentinelScene:
 
         # Load each .tif
         p = SENTINEL_SCENES_FOLDERPATH / scene_id
-        red, bounds_32630 = SentinelScene.load_tif(p / f"{p.name}_red.tif")
-        green, _ = SentinelScene.load_tif(p / f"{p.name}_green.tif")
-        blue, _ = SentinelScene.load_tif(p / f"{p.name}_blue.tif")
-        nir, _ = SentinelScene.load_tif(p / f"{p.name}_nir.tif")
-        swir, _ = SentinelScene.load_tif(p / f"{p.name}_swir22.tif")
+        red, bounds, crs = SentinelScene.load_tif(p / f"{p.name}_red.tif")
+        green, _, _ = SentinelScene.load_tif(p / f"{p.name}_green.tif")
+        blue, _, _ = SentinelScene.load_tif(p / f"{p.name}_blue.tif")
+        nir, _, _ = SentinelScene.load_tif(p / f"{p.name}_nir.tif")
+        swir, _, _ = SentinelScene.load_tif(p / f"{p.name}_swir22.tif")
 
-        return SentinelScene(dt=dt, bounds_32630=bounds_32630, scene_id=scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir)
+        return SentinelScene(dt=dt, _bounds=bounds, _crs=crs, scene_id=scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir)
