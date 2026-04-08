@@ -41,8 +41,8 @@ class SearchResult:
         self.scenes = kept_scenes
 
     def keep_least_cloudy(self) -> None:
-        scene = np.argmin([e.properties["eo:cloud_cover"] for e in self.scenes])
-        self.scenes = [scene]
+        scene_idx = np.argmin([e.properties["eo:cloud_cover"] for e in self.scenes])
+        self.scenes = [self.scenes[scene_idx]]
 
     @staticmethod
     def _search_stac(dt: str, bbox: tuple[float, float, float, float], client: PySTACClient) -> tuple[str, list[PySTACItem]]:
