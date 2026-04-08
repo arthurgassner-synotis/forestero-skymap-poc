@@ -104,7 +104,11 @@ class SearchResult:
         part_filepath.rename(filepath)
 
     def download(self) -> None:
-        print(f"Downloading {len(self.scenes)} scenes ...")
+        if not self.scenes:
+            logger.warning("Search result contains no scene. Skipping download...")
+            return
+
+        logger.info(f"Downloading {len(self.scenes)} scenes ...")
 
         for scene in self.scenes:
             scene_folder = SENTINEL_SCENES_FOLDERPATH / scene.id
@@ -119,4 +123,4 @@ class SearchResult:
                     try:
                         SearchResult.download_file(download_url, filepath)
                     except Exception as e:
-                        print(f"Error downloading {band}: {e}")
+                        logger.exception(f"Error downloading {band}: {e}")
