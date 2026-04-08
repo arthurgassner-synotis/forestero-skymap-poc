@@ -1,11 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
+from loguru import logger
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
-from shapely.geometry import MultiPoint, Polygon
+from shapely.geometry import MultiPoint, Polygon, box
 
 from .constants import GHANA
+from .search_result import SearchResult
+from .sentinel_scene import SentinelScene
 from .tree import Tree
 
 
@@ -14,6 +17,7 @@ class Site:
     trees: list[Tree]
     name: str
     region: str
+    scenes: set[SentinelScene] = field(default_factory=set)
 
     @property
     def polygon(self) -> Polygon:
@@ -36,6 +40,16 @@ class Site:
     def bbox(self) -> tuple[float, float, float, float]:
         """min-lon, min-lat, max-lon, max-lat"""
         return tuple(self.polygon.bounds)
+
+    def add_scenes(self, search_results: list[SearchResult]) -> None:
+        bbox_geom = box(*self.bbox)
+        added_scenes = set()
+        for search_result in search_results:
+            if bbox_geom.intersects(box(*search_result.bbox)):
+                added_scenes.update(search_result.scenes)
+
+        self.scenes.update(added_scenes)
+        logger.info(f"Added {len(added_scenes)} scenes ({len(self.scenes)} total)")
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
