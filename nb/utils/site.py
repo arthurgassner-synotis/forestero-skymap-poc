@@ -102,6 +102,10 @@ class Site:
             gdf = gdf.translate(xoff=-bounds.left, yoff=-bounds.bottom)
             gdf.plot(ax=ax, color="black", marker="x")
 
+            ax.set_title(f"Scene ID: {ss.scene_id}")
+
+        plt.suptitle(f"Site {self.name}\n({self.area_m2:.0f} m2)")
+
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
 
