@@ -69,7 +69,7 @@ class Site:
         self.scene_ids.update(added_scene_ids)
         logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
 
-    def plot_over_scenes(self) -> None:
+    def plot_over_scenes(self, padding_m: int = 100) -> None:
         f, axes = plt.subplots(1, len(self.scene_ids), figsize=(5, 6))
 
         if not isinstance(axes, list):
@@ -81,11 +81,26 @@ class Site:
             ax.xaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
             ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
 
-        for idx, ss in enumerate(self.cropped_sentinel_scenes):
+        for idx, ss in enumerate(self.sentinel_scenes):
             ax = axes[idx]
-            ax.imshow(ss.processed_rgb)
-            self.gs.plot(ax=ax, color="lightgreen", alpha=0.5)
-            self.gdf.plot(ax=ax)
+
+            cropped_ss = ss.crop(self.bbox, padding_m=padding_m)
+
+            # Figure out ticks
+            bounds = cropped_ss._bounds
+            extent = (0, bounds.right - bounds.left, 0, bounds.top - bounds.bottom)
+
+            ax.imshow(cropped_ss.processed_rgb, extent=extent)
+
+            # Plot the area
+            gs = self.gs.to_crs(ss._crs)
+            gs = gs.translate(xoff=-bounds.left, yoff=-bounds.bottom)  # So the gs aligns with the 0-based extent
+            gs.plot(ax=ax, color="red", alpha=0.8)
+
+            # Plot the trees
+            gdf = self.gdf.to_crs(ss._crs)
+            gdf = gdf.translate(xoff=-bounds.left, yoff=-bounds.bottom)
+            gdf.plot(ax=ax, color="black", marker="x")
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
