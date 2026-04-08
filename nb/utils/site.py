@@ -32,6 +32,11 @@ class Site:
         local_utm = self.gs.estimate_utm_crs()
         return self.gs.to_crs(local_utm).area.iloc[0]
 
+    @property
+    def bbox(self) -> tuple[float, float, float, float]:
+        """min-lon, min-lat, max-lon, max-lat"""
+        return tuple(self.polygon.bounds)
+
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
 
