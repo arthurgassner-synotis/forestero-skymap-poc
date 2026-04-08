@@ -18,3 +18,4 @@ GHANA = ox.geocode_to_gdf("Ghana")
 
 # Earth-Search API URL
 EARCH_SEARCH_API_URL = "https://earth-search.aws.element84.com/v1"
+SENTINEL_BANDS = ["blue", "green", "red", "nir", "swir22"]
