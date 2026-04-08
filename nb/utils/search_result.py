@@ -9,6 +9,7 @@ from tqdm import tqdm
 @dataclass
 class SearchResult:
     dt: str
+    bbox: tuple[float, float, float, float]
     scenes: list[Item]
 
     @staticmethod
@@ -33,4 +34,4 @@ class SearchResult:
             dt, scenes = future.result()
             dt_to_scenes[dt] = scenes
 
-        return [SearchResult(dt=dt, scenes=scenes) for dt, scenes in dt_to_scenes.items()]
+        return [SearchResult(dt=dt, bbox=bbox, scenes=scenes) for dt, scenes in dt_to_scenes.items()]
