@@ -1,7 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 
-from pystac.item import Item
+from pystac.item import PySTACItem
 from pystac_client.client import Client as PySTACClient
 from tqdm import tqdm
 
@@ -10,10 +10,10 @@ from tqdm import tqdm
 class SearchResult:
     dt: str
     bbox: tuple[float, float, float, float]
-    scenes: list[Item]
+    scenes: list[PySTACItem]
 
     @staticmethod
-    def _search_stac(dt: str, bbox: tuple[float, float, float, float], client: PySTACClient) -> tuple[str, list[Item]]:
+    def _search_stac(dt: str, bbox: tuple[float, float, float, float], client: PySTACClient) -> tuple[str, list[PySTACItem]]:
         """Helper function to run a single search."""
         search = client.search(
             collections=["sentinel-2-l2a"],
