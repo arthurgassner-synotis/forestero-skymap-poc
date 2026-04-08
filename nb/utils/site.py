@@ -73,7 +73,19 @@ class Site:
         logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
 
     def plot_over_scenes(self) -> None:
-        pass
+        f, axes = plt.subplots(1, len(self.scene_ids), figsize=(5, 6))
+
+        for ax in axes:
+            ax.xaxis.set_major_locator(MaxNLocator(nbins=2))
+            ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
+            ax.xaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
+            ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
+
+        for idx, ss in enumerate(self.cropped_sentinel_scenes):
+            ax = axes[idx]
+            ax.imshow(ss.processed_rgb)
+            self.gs.plot(ax=ax, color="lightgreen", alpha=0.5)
+            self.gdf.plot(ax=ax)
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
