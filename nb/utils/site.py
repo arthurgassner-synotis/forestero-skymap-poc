@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from functools import cached_property
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ from shapely.geometry import MultiPoint, Polygon, box
 
 from .constants import GHANA
 from .search_result import SearchResult
+from .sentinel_scene import SentinelScene
 from .tree import Tree
 
 
@@ -39,6 +41,14 @@ class Site:
     def bbox(self) -> tuple[float, float, float, float]:
         """min-lon, min-lat, max-lon, max-lat"""
         return tuple(self.polygon.bounds)
+
+    @cached_property
+    def sentinel_scenes(self) -> list["SentinelScene"]:
+        sentinel_scenes = []
+        for scene_id in self.scene_ids:
+            sentinel_scenes.append(SentinelScene.from_scene_id(scene_id))
+
+        return sentinel_scenes
 
     def add_scenes(self, search_results: list[SearchResult]) -> None:
         bbox_geom = box(*self.bbox)

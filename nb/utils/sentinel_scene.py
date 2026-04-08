@@ -6,11 +6,13 @@ import numpy as np
 import rasterio
 from rasterio.warp import transform_bounds
 
+from .constants import SENTINEL_SCENES_FOLDERPATH
+
 
 @dataclass
 class SentinelScene:
     bounds_32630: rasterio.coords.BoundingBox
-    name: str
+    scene_id: str
     red: np.ndarray
     green: np.ndarray
     blue: np.ndarray
@@ -53,21 +55,20 @@ class SentinelScene:
             return src.read(1), src.bounds
 
     @staticmethod
-    def from_folderpath(p: Path) -> "SentinelScene":
-        name = p.name
-
+    def from_scene_id(scene_id: str) -> "SentinelScene":
         # Figure out datetime
-        date_str = name.split("_")[2]
+        date_str = scene_id.split("_")[2]
         yyyy = int(date_str[:4])
         mm = int(date_str[4:6])
         dd = int(date_str[6:])
         dt = date(yyyy, mm, dd)
 
         # Load each .tif
+        p = SENTINEL_SCENES_FOLDERPATH / scene_id
         red, bounds_32630 = SentinelScene.load_tif(p / f"{p.name}_red.tif")
         green, _ = SentinelScene.load_tif(p / f"{p.name}_green.tif")
         blue, _ = SentinelScene.load_tif(p / f"{p.name}_blue.tif")
         nir, _ = SentinelScene.load_tif(p / f"{p.name}_nir.tif")
         swir, _ = SentinelScene.load_tif(p / f"{p.name}_swir22.tif")
 
-        return SentinelScene(dt=dt, bounds_32630=bounds_32630, name=name, red=red, green=green, blue=blue, nir=nir, swir=swir)
+        return SentinelScene(dt=dt, bounds_32630=bounds_32630, scene_id=scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir)
