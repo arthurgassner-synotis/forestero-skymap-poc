@@ -99,6 +99,7 @@ class Site:
             ax.set_ylabel("m")
 
         plt.suptitle(f"Site {self.name}\n({self.area_m2:.0f} m2)")
+        plt.tight_layout()
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 6))
