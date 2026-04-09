@@ -75,15 +75,7 @@ class Site:
         if not isinstance(axes, list):
             axes = [axes]
 
-        for ax in axes:
-            ax.xaxis.set_major_locator(MaxNLocator(nbins=2))
-            ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
-            ax.xaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
-            ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
-
-        for idx, ss in enumerate(self.sentinel_scenes):
-            ax = axes[idx]
-
+        for ax, ss in zip(axes, self.sentinel_scenes):
             cropped_ss = ss.crop(self.bbox, padding_m=padding_m)
 
             # Figure out ticks
@@ -100,9 +92,11 @@ class Site:
             # Plot the trees
             gdf = self.gdf.to_crs(ss._crs)
             gdf = gdf.translate(xoff=-bounds.left, yoff=-bounds.bottom)
-            gdf.plot(ax=ax, color="black", marker="x")
+            gdf.plot(ax=ax, color="black", marker="x", markersize=10)
 
-            ax.set_title(f"Scene ID: {ss.scene_id}")
+            ax.set_title(f"{ss.dt}\n Scene ID: {ss.scene_id}")
+            ax.set_xlabel("m")
+            ax.set_ylabel("m")
 
         plt.suptitle(f"Site {self.name}\n({self.area_m2:.0f} m2)")
 

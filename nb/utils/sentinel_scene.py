@@ -67,7 +67,7 @@ class SentinelScene:
             gs = gs.translate(xoff=-bounds.left, yoff=-bounds.bottom)  # So the gs aligns with the 0-based extent
             gs.plot(ax=plt.gca(), color="red", alpha=0.8)
 
-        plt.title(f"Processed RGB\n {sentinel_scene.scene_id}")
+        plt.title(f"Processed RGB \n {sentinel_scene.dt} \n {sentinel_scene.scene_id}")
         plt.xlabel("m")
         plt.ylabel("m")
 
