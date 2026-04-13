@@ -5,8 +5,10 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 import rasterio
+from loguru import logger
 from matplotlib import pyplot as plt
 from rasterio.warp import transform_bounds
+from scipy.ndimage import zoom
 from shapely import Polygon
 
 from .constants import SENTINEL_SCENES_FOLDERPATH
@@ -17,11 +19,7 @@ class SentinelScene:
     _bounds: rasterio.coords.BoundingBox
     _crs: rasterio.crs.CRS
     scene_id: str
-    red: np.ndarray
-    green: np.ndarray
-    blue: np.ndarray
-    nir: np.ndarray
-    swir: np.ndarray
+    rgbns: np.ndarray  # RGB NIR SWIR
     dt: date
 
     @property
@@ -32,15 +30,14 @@ class SentinelScene:
 
     @property
     def rgb(self) -> np.ndarray:
-        rgb = np.dstack((self.red, self.green, self.blue)).astype("float32")
-        return rgb
+        return self.rgbns[:3, :, :]
 
     @property
     def processed_rgb(self) -> np.ndarray:
         # Normalize each band
-        red = (self.red.astype("float32") - self.red.min()) / (self.red.max() - self.red.min())
-        green = (self.green.astype("float32") - self.green.min()) / (self.green.max() - self.green.min())
-        blue = (self.blue.astype("float32") - self.blue.min()) / (self.blue.max() - self.blue.min())
+        red = (self.rgbns[0] - self.red.min()) / (self.red.max() - self.red.min())
+        green = (self.rgbns[1] - self.green.min()) / (self.green.max() - self.green.min())
+        blue = (self.rgbns[2] - self.blue.min()) / (self.blue.max() - self.blue.min())
 
         # Brighten
         gamma = 2.5
@@ -49,6 +46,14 @@ class SentinelScene:
         blue = np.power(blue, 1 / gamma)
 
         return np.dstack((red, green, blue))
+
+    @property
+    def nir(self) -> np.ndarray:
+        return self.rgbns[3]
+
+    @property
+    def swir(self) -> np.ndarray:
+        return self.rgbns[4]
 
     def plot(self, polygon: Polygon | None = None, padding_m: int = 100) -> None:
         sentinel_scene = self
@@ -102,11 +107,7 @@ class SentinelScene:
             raise ValueError("The provided bounding box does not intersect this scene.")
 
         # Crop
-        red = self.red[row_min:row_max, col_min:col_max]
-        green = self.green[row_min:row_max, col_min:col_max]
-        blue = self.blue[row_min:row_max, col_min:col_max]
-        nir = self.nir[row_min:row_max, col_min:col_max]
-        swir = self.swir[row_min:row_max, col_min:col_max]
+        cropped_rgbns = self.rgbns[:, row_min:row_max, col_min:col_max]
 
         # Update ._bounds
         new_left = self._bounds.left + (col_min * x_res)
@@ -115,12 +116,31 @@ class SentinelScene:
         new_bottom = self._bounds.top - (row_max * y_res)
         bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
 
-        return SentinelScene(_bounds=bounds, _crs=self._crs, scene_id=self.scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir, dt=self.dt)
+        return SentinelScene(_bounds=bounds, _crs=self._crs, scene_id=self.scene_id, rgbns=cropped_rgbns, dt=self.dt)
 
     @staticmethod
-    def load_tif(p: Path) -> tuple[np.ndarray, rasterio.coords.BoundingBox, rasterio.crs.CRS]:
+    def load_raster(p: Path) -> np.ndarray:
         with rasterio.open(p) as src:
-            return src.read(1), src.bounds, src.crs
+            return src.read(1)
+
+    @staticmethod
+    def _load_bounds_and_crs(scene_id: str) -> tuple[rasterio.coords.BoundingBox, rasterio.crs.CRS]:
+        all_bounds, all_crs = [], []
+        for suffix in ["_red", "_green", "_blue", "_nir", "_swir22"]:
+            p = SENTINEL_SCENES_FOLDERPATH / scene_id / f"{scene_id}{suffix}.tif"
+            with rasterio.open(p) as src:
+                all_bounds.append(src.bounds)
+                all_crs.append(src.crs)
+
+        if len(set(all_bounds)) != 1:
+            logger.error(f"Several bounds found for {scene_id}: {set(all_bounds)}")
+            raise ValueError()
+
+        if len(set(all_crs)) != 1:
+            logger.error(f"Several CRS's found for {scene_id}: {set(all_crs)}")
+            raise ValueError()
+
+        return all_bounds[0], all_crs[0]
 
     @staticmethod
     def from_scene_id(scene_id: str) -> "SentinelScene":
@@ -131,12 +151,20 @@ class SentinelScene:
         dd = int(date_str[6:])
         dt = date(yyyy, mm, dd)
 
-        # Load each .tif
+        # Load each raster in their .tif
         p = SENTINEL_SCENES_FOLDERPATH / scene_id
-        red, bounds, crs = SentinelScene.load_tif(p / f"{p.name}_red.tif")
-        green, _, _ = SentinelScene.load_tif(p / f"{p.name}_green.tif")
-        blue, _, _ = SentinelScene.load_tif(p / f"{p.name}_blue.tif")
-        nir, _, _ = SentinelScene.load_tif(p / f"{p.name}_nir.tif")
-        swir, _, _ = SentinelScene.load_tif(p / f"{p.name}_swir22.tif")
+        red = SentinelScene.load_raster(p / f"{p.name}_red.tif")
+        green = SentinelScene.load_raster(p / f"{p.name}_green.tif")
+        blue = SentinelScene.load_raster(p / f"{p.name}_blue.tif")
+        nir = SentinelScene.load_raster(p / f"{p.name}_nir.tif")
+        swir = SentinelScene.load_raster(p / f"{p.name}_swir22.tif")
 
-        return SentinelScene(dt=dt, _bounds=bounds, _crs=crs, scene_id=scene_id, red=red, green=green, blue=blue, nir=nir, swir=swir)
+        # Zoom into SWIR, since one pix == 20m x 20m
+        swir = zoom(swir, zoom=2, order=1)
+
+        rgbns = np.dstack((red, green, blue, nir, swir)).astype("float32")
+
+        # Load CRS and bounds
+        bounds, crs = SentinelScene._load_bounds_and_crs(scene_id)
+
+        return SentinelScene(_bounds=bounds, _crs=crs, dt=dt, scene_id=scene_id, rgbns=rgbns)
