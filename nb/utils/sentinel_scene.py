@@ -19,6 +19,7 @@ class SentinelScene:
     scene_id: str
     rgbns: np.ndarray  # RGB NIR SWIR
     dt: date
+    bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS = rasterio.crs.CRS.from_epsg(4326)
 
     @property
