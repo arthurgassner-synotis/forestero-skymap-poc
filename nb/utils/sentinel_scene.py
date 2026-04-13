@@ -5,6 +5,7 @@ from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
+import pandas as pd
 import rasterio
 from loguru import logger
 from matplotlib import pyplot as plt
@@ -74,6 +75,9 @@ class SentinelScene:
         blue = np.power(blue, 1 / gamma)
 
         return np.dstack((red, green, blue))
+
+    def compute_Xy(self) -> tuple[pd.DataFrame, pd.Series]:
+        raise NotImplementedError()
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
@@ -151,7 +155,13 @@ class SentinelScene:
     @staticmethod
     def load_raster(p: Path) -> np.ndarray:
         with rasterio.open(p) as src:
-            return src.read(1)
+            raster = src.read(1)
+
+            # 0.0 is the no-data value
+            raster = raster.astype(float)
+            raster[raster == 0.0] = np.nan
+
+            return raster
 
     @staticmethod
     def _load_bounds_and_crs(scene_id: str) -> tuple[rasterio.coords.BoundingBox, rasterio.crs.CRS]:
