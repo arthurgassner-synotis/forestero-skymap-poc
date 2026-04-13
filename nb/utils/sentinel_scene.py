@@ -7,11 +7,14 @@ import numpy as np
 import rasterio
 from loguru import logger
 from matplotlib import pyplot as plt
-from rasterio.warp import transform_bounds
+from rasterio.enums import Resampling
+from rasterio.transform import from_bounds
+from rasterio.warp import reproject, transform_bounds
+from rasterio.windows import from_bounds as window_from_bounds
 from scipy.ndimage import zoom
 from shapely import Polygon
 
-from .constants import SENTINEL_SCENES_FOLDERPATH
+from .constants import ETHZ_COCOA_MAP_FILEPATH, SENTINEL_SCENES_FOLDERPATH
 
 
 @dataclass
@@ -160,3 +163,36 @@ class SentinelScene:
         bounds_4326 = transform_bounds(original_crs, "EPSG:4326", *original_bounds)
 
         return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgbns=rgbns)
+
+    @property
+    def ethz_array(self) -> None:
+        """Load an external ETHZ raster and dynamically aligns/resamples it to perfectly match the bounds, CRS, and resolution."""
+        height, width, _ = self.rgbns.shape
+
+        # Calculate affine transform from this scene's bounds -> this scene's pixels
+        dst_transform = from_bounds(self.bounds.left, self.bounds.bottom, self.bounds.right, self.bounds.top, width, height)
+
+        # Prepare an empty numpy array to hold the reprojected data
+        aligned_ethz = np.empty((height, width), dtype="float32")
+
+        with rasterio.open(ETHZ_COCOA_MAP_FILEPATH) as src:
+            # Figure out what bounding box to read from the source ETHZ raster
+            src_left, src_bottom, src_right, src_top = transform_bounds(self.crs, src.crs, *self.bounds)
+
+            # Calculate the pixel window for that bounding box
+            window = window_from_bounds(src_left, src_bottom, src_right, src_top, transform=src.transform)
+
+            src_array = src.read(1, window=window, boundless=True)
+            src_window_transform = src.window_transform(window)
+
+            reproject(
+                source=src_array,
+                destination=aligned_ethz,
+                src_transform=src_window_transform,
+                src_crs=src.crs,
+                dst_transform=dst_transform,
+                dst_crs=self.crs,
+                resampling=Resampling.bilinear,
+            )
+
+        return aligned_ethz
