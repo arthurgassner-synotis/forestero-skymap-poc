@@ -16,17 +16,10 @@ from .constants import SENTINEL_SCENES_FOLDERPATH
 
 @dataclass
 class SentinelScene:
-    _bounds: rasterio.coords.BoundingBox
-    _crs: rasterio.crs.CRS
     scene_id: str
     rgbns: np.ndarray  # RGB NIR SWIR
     dt: date
-
-    @property
-    def bounds(self) -> rasterio.coords.BoundingBox:
-        """Returns EPSG:4326 bbox (Lon/Lat)"""
-        converted_bounds = transform_bounds(self._crs, "EPSG:4326", self._bounds.left, self._bounds.bottom, self._bounds.right, self._bounds.top)
-        return rasterio.coords.BoundingBox(*converted_bounds)  # (left/lon_min, bottom/lat_min, right/lon_max, top/lat_max)
+    crs: rasterio.CRS = rasterio.crs.CRS.from_epsg(4326)
 
     @property
     def rgb(self) -> np.ndarray:
@@ -158,13 +151,12 @@ class SentinelScene:
         blue = SentinelScene.load_raster(p / f"{p.name}_blue.tif")
         nir = SentinelScene.load_raster(p / f"{p.name}_nir.tif")
         swir = SentinelScene.load_raster(p / f"{p.name}_swir22.tif")
-
-        # Zoom into SWIR, since one pix == 20m x 20m
-        swir = zoom(swir, zoom=2, order=1)
+        swir = zoom(swir, zoom=2, order=1)  # Zoom into SWIR, since one pix == 20m x 20m
 
         rgbns = np.dstack((red, green, blue, nir, swir)).astype("float32")
 
         # Load CRS and bounds
-        bounds, crs = SentinelScene._load_bounds_and_crs(scene_id)
+        original_bounds, original_crs = SentinelScene._load_bounds_and_crs(scene_id)
+        bounds_4326 = transform_bounds(original_crs, "EPSG:4326", *original_bounds)
 
-        return SentinelScene(_bounds=bounds, _crs=crs, dt=dt, scene_id=scene_id, rgbns=rgbns)
+        return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgbns=rgbns)
