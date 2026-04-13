@@ -21,21 +21,55 @@ from .constants import ETHZ_COCOA_MAP_FILEPATH, SENTINEL_SCENES_FOLDERPATH
 @dataclass
 class SentinelScene:
     scene_id: str
-    rgbns: np.ndarray  # RGB NIR SWIR
+    rgb_re_nir_swir: np.ndarray  # RGB NIR SWIR
     dt: date
     bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS = rasterio.crs.CRS.from_epsg(4326)
 
     @property
-    def rgb(self) -> np.ndarray:
-        return self.rgbns[:, :, :3]
+    def red(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 0]
+
+    @property
+    def green(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 1]
+
+    @property
+    def blue(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 2]
+
+    @property
+    def red_edge(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 3]
+
+    @property
+    def nir(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 4]
+
+    @property
+    def swir(self) -> np.ndarray:
+        return self.rgb_re_nir_swir[:, :, 5]
+
+    @property
+    def ndvi(self) -> np.ndarray:
+        """Normalized Difference Vegetation Index"""
+        return (self.nir - self.red) / (self.nir + self.red)
+
+    @property
+    def tci(self) -> np.ndarray:
+        """Triangular Chlorophyll Index"""
+        return 1.2 * (self.red_edge - self.green) - 1.5 * (self.red - self.green) * np.sqrt(self.red_edge / self.red)
 
     @property
     def processed_rgb(self) -> np.ndarray:
+        red = self.rgb_re_nir_swir[:, :, 0]
+        green = self.rgb_re_nir_swir[:, :, 1]
+        blue = self.rgb_re_nir_swir[:, :, 2]
+
         # Normalize each band
-        red = (self.rgbns[:, :, 0] - self.rgbns[:, :, 0].min()) / (self.rgbns[:, :, 0].max() - self.rgbns[:, :, 0].min())
-        green = (self.rgbns[:, :, 1] - self.rgbns[:, :, 1].min()) / (self.rgbns[:, :, 1].max() - self.rgbns[:, :, 1].min())
-        blue = (self.rgbns[:, :, 2] - self.rgbns[:, :, 2].min()) / (self.rgbns[:, :, 2].max() - self.rgbns[:, :, 2].min())
+        red = (red - red.min()) / (red.max() - red.min())
+        green = (green - green.min()) / (green.max() - green.min())
+        blue = (blue - blue.min()) / (blue.max() - blue.min())
 
         # Brighten
         gamma = 2.5
@@ -44,14 +78,6 @@ class SentinelScene:
         blue = np.power(blue, 1 / gamma)
 
         return np.dstack((red, green, blue))
-
-    @property
-    def nir(self) -> np.ndarray:
-        return self.rgbns[:, :, 3]
-
-    @property
-    def swir(self) -> np.ndarray:
-        return self.rgbns[:, :, 4]
 
     def plot(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
@@ -99,7 +125,7 @@ class SentinelScene:
         n_top += padding_m
 
         # Figure out pixel resolution
-        height, width, _ = self.rgbns.shape
+        height, width, _ = self.rgb_re_nir_swir.shape
         x_res = (self.bounds.right - self.bounds.left) / width
         y_res = (self.bounds.top - self.bounds.bottom) / height
 
@@ -115,7 +141,7 @@ class SentinelScene:
             raise ValueError("The provided bounding box does not intersect this scene.")
 
         # Crop
-        cropped_rgbns = self.rgbns[row_min:row_max, col_min:col_max, :]
+        cropped_rgb_re_nir_swir = self.rgb_re_nir_swir[row_min:row_max, col_min:col_max, :]
 
         # Update .bounds
         new_left = self.bounds.left + (col_min * x_res)
@@ -124,7 +150,7 @@ class SentinelScene:
         new_bottom = self.bounds.top - (row_max * y_res)
         bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
 
-        return SentinelScene(bounds=bounds, scene_id=self.scene_id, rgbns=cropped_rgbns, dt=self.dt)
+        return SentinelScene(bounds=bounds, scene_id=self.scene_id, rgb_re_nir_swir=cropped_rgb_re_nir_swir, dt=self.dt)
 
     @staticmethod
     def load_raster(p: Path) -> np.ndarray:
@@ -168,18 +194,18 @@ class SentinelScene:
         swir = SentinelScene.load_raster(p / f"{p.name}_swir22.tif")
         swir = zoom(swir, zoom=2, order=1)  # Zoom into SWIR, since one pix == 20m x 20m
 
-        rgbns = np.dstack((red, green, blue, nir, swir)).astype("float32")
+        rgb_re_nir_swir = np.dstack((red, green, blue, nir, swir)).astype("float32")
 
         # Load CRS and bounds
         original_bounds, original_crs = SentinelScene._load_bounds_and_crs(scene_id)
         bounds_4326 = transform_bounds(original_crs, "EPSG:4326", *original_bounds)
 
-        return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgbns=rgbns)
+        return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgb_re_nir_swir=rgb_re_nir_swir)
 
     @cached_property
     def ethz_array(self) -> None:
         """Load an external ETHZ raster and dynamically aligns/resamples it to perfectly match the bounds, CRS, and resolution."""
-        height, width, _ = self.rgbns.shape
+        height, width, _ = self.rgb_re_nir_swir.shape
 
         # Calculate affine transform from this scene's bounds -> this scene's pixels
         dst_transform = from_bounds(self.bounds.left, self.bounds.bottom, self.bounds.right, self.bounds.top, width, height)
