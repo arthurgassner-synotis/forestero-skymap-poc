@@ -53,10 +53,16 @@ class SentinelScene:
     def swir(self) -> np.ndarray:
         return self.rgbns[:, :, 4]
 
-    def plot(self, polygon: Polygon | None = None, padding_m: int = 100) -> None:
-        sentinel_scene = self
+    def plot(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
+        # Figure out bounds
+        min_lon, min_lat, max_lon, max_lat = self.bounds
+        mid_lon = min_lon + (min_lon + max_lon) / 2
+        mid_lat = min_lat + (min_lat + max_lat) / 2
+        bounds = (mid_lon, mid_lat, mid_lon, mid_lat)
         if polygon is not None:
-            sentinel_scene = self.crop(polygon.bounds, padding_m)
+            bounds = polygon.bounds
+
+        sentinel_scene = self.crop(bounds, padding_m)
 
         # Figure out ticks
         extent = (0, self.bounds.right - self.bounds.left, 0, self.bounds.top - self.bounds.bottom)
@@ -65,9 +71,12 @@ class SentinelScene:
         plt.imshow(sentinel_scene.processed_rgb, extent=extent)
 
         if polygon:
-            gs = gpd.GeoSeries([polygon], crs="EPSG:4326").to_crs(self._crs)
+            gs = gpd.GeoSeries([polygon], crs="EPSG:4326")
             gs = gs.translate(xoff=-self.bounds.left, yoff=-self.bounds.bottom)  # So the gs aligns with the 0-based extent
             gs.plot(ax=plt.gca(), color="red", alpha=0.8)
+
+        if plot_ethz:
+            plt.imshow(sentinel_scene.ethz_array, ax=plt.gca(), color="green", alpha=self.ethz_array)
 
         plt.title(f"Processed RGB \n {sentinel_scene.dt} \n {sentinel_scene.scene_id}")
         plt.xlabel("m")
@@ -78,8 +87,10 @@ class SentinelScene:
 
         min_lon, min_lat, max_lon, max_lat = bbox
 
-        # EPSG:4326 -> self._crs conversion
-        n_left, n_bottom, n_right, n_top = transform_bounds("EPSG:4326", self._crs, min_lon, min_lat, max_lon, max_lat)
+        # EPSG:4326 -> ? conversion
+        n_left, n_bottom, n_right, n_top = transform_bounds(self.crs, self.c, min_lon, min_lat, max_lon, max_lat)
+        # FIXME
+        raise NotImplementedError()
 
         # Apply padding, assuming self._crs uses meters
         n_left -= padding_m
@@ -88,7 +99,7 @@ class SentinelScene:
         n_top += padding_m
 
         # Figure out pixel resolution
-        height, width = self.red.shape
+        height, width, _ = self.rgbns.shape
         x_res = (self.bounds.right - self.bounds.left) / width
         y_res = (self.bounds.top - self.bounds.bottom) / height
 
@@ -104,7 +115,7 @@ class SentinelScene:
             raise ValueError("The provided bounding box does not intersect this scene.")
 
         # Crop
-        cropped_rgbns = self.rgbns[:, row_min:row_max, col_min:col_max]
+        cropped_rgbns = self.rgbns[row_min:row_max, col_min:col_max, :]
 
         # Update .bounds
         new_left = self.bounds.left + (col_min * x_res)
