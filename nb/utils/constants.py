@@ -26,3 +26,6 @@ SENTINEL_BANDS = ["blue", "green", "red", "nir", "swir22"]
 
 # ETHZ uint8 cocoa map
 ETHZ_COCOA_MAP_UINT8_FILEPATH = SILVER_FOLDERPATH / "cocoa_map_uint8.tif"
+
+# ETHZ masks
+ETHZ_COCOA_MASK_FILEPATH = SILVER_FOLDERPATH / "cocoa_mask.tif"
