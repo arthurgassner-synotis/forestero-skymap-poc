@@ -23,7 +23,7 @@ GH_ASHANTI_GDF = ox.geocode_to_gdf("Ashanti Region, Ghana")
 
 # Earth-Search API URL
 EARCH_SEARCH_API_URL = "https://earth-search.aws.element84.com/v1"
-SENTINEL_BANDS = ["blue", "green", "red", "nir", "swir22"]
+SENTINEL_BANDS = ["blue", "green", "red", "rededge1", "nir", "swir22"]
 
 # ETHZ uint8 cocoa map
 ETHZ_COCOA_MAP_UINT8_FILEPATH = SILVER_FOLDERPATH / "cocoa_map_uint8.tif"
