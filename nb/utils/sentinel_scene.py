@@ -35,9 +35,9 @@ class SentinelScene:
     @property
     def processed_rgb(self) -> np.ndarray:
         # Normalize each band
-        red = (self.rgbns[0] - self.red.min()) / (self.red.max() - self.red.min())
-        green = (self.rgbns[1] - self.green.min()) / (self.green.max() - self.green.min())
-        blue = (self.rgbns[2] - self.blue.min()) / (self.blue.max() - self.blue.min())
+        red = (self.rgbns[0] - self.rgbns[0].min()) / (self.rgbns[0].max() - self.rgbns[0].min())
+        green = (self.rgbns[1] - self.rgbns[1].min()) / (self.rgbns[1].max() - self.rgbns[1].min())
+        blue = (self.rgbns[2] - self.rgbns[2].min()) / (self.rgbns[2].max() - self.rgbns[2].min())
 
         # Brighten
         gamma = 2.5
