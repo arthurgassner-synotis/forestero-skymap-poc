@@ -62,14 +62,10 @@ class SentinelScene:
 
     @property
     def processed_rgb(self) -> np.ndarray:
-        red = self.rgb_re_nir_swir[:, :, 0]
-        green = self.rgb_re_nir_swir[:, :, 1]
-        blue = self.rgb_re_nir_swir[:, :, 2]
-
         # Normalize each band
-        red = (red - red.min()) / (red.max() - red.min())
-        green = (green - green.min()) / (green.max() - green.min())
-        blue = (blue - blue.min()) / (blue.max() - blue.min())
+        red = (self.red - self.red.min()) / (self.red.max() - self.red.min())
+        green = (self.green - self.green.min()) / (self.green.max() - self.green.min())
+        blue = (self.blue - self.blue.min()) / (self.blue.max() - self.blue.min())
 
         # Brighten
         gamma = 2.5
@@ -79,7 +75,7 @@ class SentinelScene:
 
         return np.dstack((red, green, blue))
 
-    def plot(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
+    def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
         min_lon, min_lat, max_lon, max_lat = self.bounds
         mid_lon = min_lon + (min_lon + max_lon) / 2
