@@ -18,7 +18,8 @@ ETHZ_COCOA_MAP_FILEPATH = BRONZE_FOLDERPATH / "cocoa_map.tif"
 ETHZ_COCOA_MAP_THRESHOLDED_FILEPATH = BRONZE_FOLDERPATH / "cocoa_map_th_065.tif"
 
 # Ghana gdf
-GHANA = ox.geocode_to_gdf("Ghana")
+GHANA_GDF = ox.geocode_to_gdf("Ghana")
+GH_ASHANTI_GDF = ox.geocode_to_gdf("Ashanti Region, Ghana")
 
 # Earth-Search API URL
 EARCH_SEARCH_API_URL = "https://earth-search.aws.element84.com/v1"

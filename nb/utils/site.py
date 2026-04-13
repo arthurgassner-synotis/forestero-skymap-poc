@@ -7,7 +7,7 @@ from loguru import logger
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 from shapely.geometry import MultiPoint, Polygon, box
 
-from .constants import GHANA
+from .constants import GHANA_GDF
 from .search_result import SearchResult
 from .sentinel_scene import SentinelScene
 from .tree import Tree
@@ -111,12 +111,12 @@ class Site:
             ax.yaxis.set_major_formatter(StrMethodFormatter("{x:.5f}"))
 
         # Plot full map
-        GHANA.plot(ax=axes[0], color="whitesmoke", edgecolor="black", linewidth=1.5)
+        GHANA_GDF.plot(ax=axes[0], color="whitesmoke", edgecolor="black", linewidth=1.5)
         self.gdf.plot(ax=axes[0])
         axes[0].set_title(f"Plantation {self.name}\n (Region: {self.region})")
 
         # Plot zoomed-in version
-        GHANA.plot(ax=axes[1], color="whitesmoke", edgecolor="black", linewidth=1.5)
+        GHANA_GDF.plot(ax=axes[1], color="whitesmoke", edgecolor="black", linewidth=1.5)
         self.gs.plot(ax=axes[1], color="lightgreen", alpha=0.5)
         self.gdf.plot(ax=axes[1])
 

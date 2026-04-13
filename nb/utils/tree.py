@@ -4,7 +4,7 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
 
-from .constants import GHANA
+from .constants import GHANA_GDF
 
 
 @dataclass
@@ -15,7 +15,7 @@ class Tree:
         f, axes = plt.subplots(1, 2, figsize=(6, 5))
 
         # Plot full map
-        GHANA.plot(ax=axes[0], color="whitesmoke", edgecolor="black", linewidth=1.5)
+        GHANA_GDF.plot(ax=axes[0], color="whitesmoke", edgecolor="black", linewidth=1.5)
 
         # Plot single tree
         gdf = gpd.GeoDataFrame(geometry=[self.point])
@@ -27,7 +27,7 @@ class Tree:
         min_lon, min_lat = lon - PADDING, lat - PADDING
         max_lon, max_lat = lon + PADDING, lat + PADDING
 
-        GHANA.plot(ax=axes[1], color="whitesmoke", edgecolor="black", linewidth=1.5)
+        GHANA_GDF.plot(ax=axes[1], color="whitesmoke", edgecolor="black", linewidth=1.5)
         gdf = gpd.GeoDataFrame(geometry=[self.point])
         gdf.plot(ax=axes[1])
 
