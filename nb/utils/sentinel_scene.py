@@ -24,14 +24,14 @@ class SentinelScene:
 
     @property
     def rgb(self) -> np.ndarray:
-        return self.rgbns[:3, :, :]
+        return self.rgbns[:, :, :3]
 
     @property
     def processed_rgb(self) -> np.ndarray:
         # Normalize each band
-        red = (self.rgbns[0] - self.rgbns[0].min()) / (self.rgbns[0].max() - self.rgbns[0].min())
-        green = (self.rgbns[1] - self.rgbns[1].min()) / (self.rgbns[1].max() - self.rgbns[1].min())
-        blue = (self.rgbns[2] - self.rgbns[2].min()) / (self.rgbns[2].max() - self.rgbns[2].min())
+        red = (self.rgbns[:, :, 0] - self.rgbns[:, :, 0].min()) / (self.rgbns[:, :, 0].max() - self.rgbns[:, :, 0].min())
+        green = (self.rgbns[:, :, 1] - self.rgbns[:, :, 1].min()) / (self.rgbns[:, :, 1].max() - self.rgbns[:, :, 1].min())
+        blue = (self.rgbns[:, :, 2] - self.rgbns[:, :, 2].min()) / (self.rgbns[:, :, 2].max() - self.rgbns[:, :, 2].min())
 
         # Brighten
         gamma = 2.5
@@ -43,11 +43,11 @@ class SentinelScene:
 
     @property
     def nir(self) -> np.ndarray:
-        return self.rgbns[3]
+        return self.rgbns[:, :, 3]
 
     @property
     def swir(self) -> np.ndarray:
-        return self.rgbns[4]
+        return self.rgbns[:, :, 4]
 
     def plot(self, polygon: Polygon | None = None, padding_m: int = 100) -> None:
         sentinel_scene = self
@@ -55,15 +55,14 @@ class SentinelScene:
             sentinel_scene = self.crop(polygon.bounds, padding_m)
 
         # Figure out ticks
-        bounds = sentinel_scene._bounds
-        extent = (0, bounds.right - bounds.left, 0, bounds.top - bounds.bottom)
+        extent = (0, self.bounds.right - self.bounds.left, 0, self.bounds.top - self.bounds.bottom)
 
         # NOTE: extent lets matplotlib handles the tick logic, supplying the bounds
         plt.imshow(sentinel_scene.processed_rgb, extent=extent)
 
         if polygon:
             gs = gpd.GeoSeries([polygon], crs="EPSG:4326").to_crs(self._crs)
-            gs = gs.translate(xoff=-bounds.left, yoff=-bounds.bottom)  # So the gs aligns with the 0-based extent
+            gs = gs.translate(xoff=-self.bounds.left, yoff=-self.bounds.bottom)  # So the gs aligns with the 0-based extent
             gs.plot(ax=plt.gca(), color="red", alpha=0.8)
 
         plt.title(f"Processed RGB \n {sentinel_scene.dt} \n {sentinel_scene.scene_id}")
@@ -86,15 +85,15 @@ class SentinelScene:
 
         # Figure out pixel resolution
         height, width = self.red.shape
-        x_res = (self._bounds.right - self._bounds.left) / width
-        y_res = (self._bounds.top - self._bounds.bottom) / height
+        x_res = (self.bounds.right - self.bounds.left) / width
+        y_res = (self.bounds.top - self.bounds.bottom) / height
 
         # Spatial coordinates -> pixel indices conversion
-        # (row 0 is at _bounds.top, col 0 is at _bounds.left)
-        col_min = int(max(0, (n_left - self._bounds.left) / x_res))
-        col_max = int(min(width, (n_right - self._bounds.left) / x_res))
-        row_min = int(max(0, (self._bounds.top - n_top) / y_res))
-        row_max = int(min(height, (self._bounds.top - n_bottom) / y_res))
+        # (row 0 is at bounds.top, col 0 is at bounds.left)
+        col_min = int(max(0, (n_left - self.bounds.left) / x_res))
+        col_max = int(min(width, (n_right - self.bounds.left) / x_res))
+        row_min = int(max(0, (self.bounds.top - n_top) / y_res))
+        row_max = int(min(height, (self.bounds.top - n_bottom) / y_res))
 
         # Ensure cropping makes sense
         if col_min >= col_max or row_min >= row_max:
@@ -103,14 +102,14 @@ class SentinelScene:
         # Crop
         cropped_rgbns = self.rgbns[:, row_min:row_max, col_min:col_max]
 
-        # Update ._bounds
-        new_left = self._bounds.left + (col_min * x_res)
-        new_right = self._bounds.left + (col_max * x_res)
-        new_top = self._bounds.top - (row_min * y_res)
-        new_bottom = self._bounds.top - (row_max * y_res)
+        # Update .bounds
+        new_left = self.bounds.left + (col_min * x_res)
+        new_right = self.bounds.left + (col_max * x_res)
+        new_top = self.bounds.top - (row_min * y_res)
+        new_bottom = self.bounds.top - (row_max * y_res)
         bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
 
-        return SentinelScene(_bounds=bounds, _crs=self._crs, scene_id=self.scene_id, rgbns=cropped_rgbns, dt=self.dt)
+        return SentinelScene(bounds=bounds, scene_id=self.scene_id, rgbns=cropped_rgbns, dt=self.dt)
 
     @staticmethod
     def load_raster(p: Path) -> np.ndarray:
