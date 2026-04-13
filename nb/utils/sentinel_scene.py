@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date
+from functools import cached_property
 from pathlib import Path
 
 import geopandas as gpd
@@ -164,7 +165,7 @@ class SentinelScene:
 
         return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgbns=rgbns)
 
-    @property
+    @cached_property
     def ethz_array(self) -> None:
         """Load an external ETHZ raster and dynamically aligns/resamples it to perfectly match the bounds, CRS, and resolution."""
         height, width, _ = self.rgbns.shape
