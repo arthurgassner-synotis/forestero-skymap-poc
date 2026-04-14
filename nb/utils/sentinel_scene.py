@@ -68,13 +68,14 @@ class SentinelScene:
 
     @cached_property
     def processed_rgb(self) -> np.ndarray:
+        """Normalized & Gamma-corrected RGB."""
         # Normalize each band
         red = (self.red - self.red.min()) / (self.red.max() - self.red.min())
         green = (self.green - self.green.min()) / (self.green.max() - self.green.min())
         blue = (self.blue - self.blue.min()) / (self.blue.max() - self.blue.min())
 
         # Brighten
-        gamma = 2.5
+        gamma = 2.5  # Hand-picked so that it looks nice
         red = np.power(red, 1 / gamma)
         green = np.power(green, 1 / gamma)
         blue = np.power(blue, 1 / gamma)
@@ -82,6 +83,7 @@ class SentinelScene:
         return np.dstack((red, green, blue))
 
     def compute_Xy(self) -> tuple[pd.DataFrame, pd.Series]:
+        """Extract features & label for each pixel in this scene."""
         Xy = pd.DataFrame(
             {
                 "tci": self.tci.flatten(),
@@ -169,6 +171,7 @@ class SentinelScene:
 
     @staticmethod
     def load_raster(p: Path) -> np.ndarray:
+        """Load raster image."""
         with rasterio.open(p) as src:
             raster = src.read(1)
 
@@ -199,6 +202,8 @@ class SentinelScene:
 
     @staticmethod
     def from_scene_id(scene_id: str) -> "SentinelScene":
+        """Load a SentinelScene from the data available at SENTINEL_SCENES_FOLDERPATH/"""
+
         # Figure out datetime
         date_str = scene_id.split("_")[2]
         yyyy = int(date_str[:4])
@@ -218,7 +223,7 @@ class SentinelScene:
         red_edge = zoom(red_edge, zoom=2, order=1)  # Zoom into red edge, since one pix == 20m x 20m
         swir = zoom(swir, zoom=2, order=1)  # Zoom into SWIR, since one pix == 20m x 20m
 
-        rgb_re_nir_swir = np.dstack((red, green, blue, red_edge, nir, swir)).astype("float16")
+        rgb_re_nir_swir = np.dstack((red, green, blue, red_edge, nir, swir)).astype("float32")
 
         # Load CRS and bounds
         original_bounds, original_crs = SentinelScene._load_bounds_and_crs(scene_id)
@@ -235,7 +240,7 @@ class SentinelScene:
         dst_transform = from_bounds(self.bounds.left, self.bounds.bottom, self.bounds.right, self.bounds.top, width, height)
 
         # Prepare an empty numpy array to hold the reprojected data
-        aligned_ethz = np.empty((height, width), dtype="float16")
+        aligned_ethz = np.empty((height, width), dtype="float32")
 
         with rasterio.open(ETHZ_COCOA_MAP_FILEPATH) as src:
             # Figure out what bounding box to read from the source ETHZ raster
