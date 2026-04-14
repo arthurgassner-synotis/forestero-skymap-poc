@@ -51,17 +51,17 @@ class SentinelScene:
     def swir(self) -> np.ndarray:
         return self.rgb_re_nir_swir[:, :, 5]
 
-    @property
+    @cached_property
     def ndvi(self) -> np.ndarray:
         """Normalized Difference Vegetation Index"""
         return (self.nir - self.red) / (self.nir + self.red)
 
-    @property
+    @cached_property
     def tci(self) -> np.ndarray:
         """Triangular Chlorophyll Index"""
         return 1.2 * (self.red_edge - self.green) - 1.5 * (self.red - self.green) * np.sqrt(self.red_edge / self.red)
 
-    @property
+    @cached_property
     def processed_rgb(self) -> np.ndarray:
         # Normalize each band
         red = (self.red - self.red.min()) / (self.red.max() - self.red.min())
@@ -77,7 +77,17 @@ class SentinelScene:
         return np.dstack((red, green, blue))
 
     def compute_Xy(self) -> tuple[pd.DataFrame, pd.Series]:
-        raise NotImplementedError()
+        Xy = pd.DataFrame(
+            {
+                "tci": self.tci.flatten(),
+                "ndvi": self.ndvi.flatten(),
+                "nir": self.nir.flatten(),
+                "swir": self.swir.flatten(),
+                "y_proba": self.ethz_array.flatten(),
+            }
+        )
+        Xy = Xy.dropna().reset_index(drop=True)
+        return Xy[["tci", "ndvi", "nir", "swir"]], Xy[["y_proba"]]
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
@@ -196,11 +206,14 @@ class SentinelScene:
         red = SentinelScene.load_raster(p / f"{p.name}_red.tif")
         green = SentinelScene.load_raster(p / f"{p.name}_green.tif")
         blue = SentinelScene.load_raster(p / f"{p.name}_blue.tif")
+        red_edge = SentinelScene.load_raster(p / f"{p.name}_rededge1.tif")
         nir = SentinelScene.load_raster(p / f"{p.name}_nir.tif")
         swir = SentinelScene.load_raster(p / f"{p.name}_swir22.tif")
+
+        red_edge = zoom(red_edge, zoom=2, order=1)  # Zoom into red edge, since one pix == 20m x 20m
         swir = zoom(swir, zoom=2, order=1)  # Zoom into SWIR, since one pix == 20m x 20m
 
-        rgb_re_nir_swir = np.dstack((red, green, blue, nir, swir)).astype("float32")
+        rgb_re_nir_swir = np.dstack((red, green, blue, red_edge, nir, swir)).astype("float32")
 
         # Load CRS and bounds
         original_bounds, original_crs = SentinelScene._load_bounds_and_crs(scene_id)
@@ -238,5 +251,8 @@ class SentinelScene:
                 dst_crs=self.crs,
                 resampling=Resampling.bilinear,
             )
+
+            # Only keep probas
+            aligned_ethz[aligned_ethz <= 0.0] = np.nan
 
         return aligned_ethz
