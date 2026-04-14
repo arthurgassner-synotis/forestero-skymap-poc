@@ -18,6 +18,8 @@ from shapely import Polygon
 
 from .constants import ETHZ_COCOA_MAP_FILEPATH, SENTINEL_SCENES_FOLDERPATH
 
+PX_TO_M = 10
+
 
 @dataclass
 class SentinelScene:
@@ -95,6 +97,31 @@ class SentinelScene:
         )
         Xy = Xy.dropna().reset_index(drop=True)
         return Xy[["tci", "ndvi", "nir", "swir"]], Xy[["y_proba"]]
+
+    @staticmethod
+    def _plot(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> None:
+        """Plot a downscaled version of the img."""
+        height, width, _ = img.shape
+
+        # Cheap downscale to match max resolution
+        if height >= max_resolution_px:
+            stride = height // max_resolution_px
+            img = img[::stride, ::stride]
+
+        # Define what the img's side correspond to in "world coords"
+        height_m, width_m = height * PX_TO_M, width * PX_TO_M
+        extent = [0, width_m, height_m, 0]  # left, right, bottom, top
+
+        plt.imshow(img, extent=extent)
+
+        plt.xlabel("m")
+        plt.ylabel("m")
+
+    def plot(self, max_resolution_px: int = 1_000) -> None:
+        plt.figure(figsize=(5, 5))
+        plt.title(f"Processed RGB \n {self.dt} \n {self.scene_id}")
+
+        SentinelScene._plot(self.processed_rgb, max_resolution_px=max_resolution_px, ax=plt.gca())
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
