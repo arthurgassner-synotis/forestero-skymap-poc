@@ -28,6 +28,11 @@ class SentinelScene:
     crs: rasterio.CRS = rasterio.crs.CRS.from_epsg(4326)
 
     @property
+    def array_size(self) -> str:
+        """Size in Giga Bytes"""
+        return f"{self.rgb_re_nir_swir.nbytes / (1024**3):.2f} GB"
+
+    @property
     def red(self) -> np.ndarray:
         return self.rgb_re_nir_swir[:, :, 0]
 
@@ -51,12 +56,12 @@ class SentinelScene:
     def swir(self) -> np.ndarray:
         return self.rgb_re_nir_swir[:, :, 5]
 
-    @cached_property
+    @property
     def ndvi(self) -> np.ndarray:
         """Normalized Difference Vegetation Index"""
         return (self.nir - self.red) / (self.nir + self.red)
 
-    @cached_property
+    @property
     def tci(self) -> np.ndarray:
         """Triangular Chlorophyll Index"""
         return 1.2 * (self.red_edge - self.green) - 1.5 * (self.red - self.green) * np.sqrt(self.red_edge / self.red)
@@ -213,7 +218,7 @@ class SentinelScene:
         red_edge = zoom(red_edge, zoom=2, order=1)  # Zoom into red edge, since one pix == 20m x 20m
         swir = zoom(swir, zoom=2, order=1)  # Zoom into SWIR, since one pix == 20m x 20m
 
-        rgb_re_nir_swir = np.dstack((red, green, blue, red_edge, nir, swir)).astype("float32")
+        rgb_re_nir_swir = np.dstack((red, green, blue, red_edge, nir, swir)).astype("float16")
 
         # Load CRS and bounds
         original_bounds, original_crs = SentinelScene._load_bounds_and_crs(scene_id)
@@ -230,7 +235,7 @@ class SentinelScene:
         dst_transform = from_bounds(self.bounds.left, self.bounds.bottom, self.bounds.right, self.bounds.top, width, height)
 
         # Prepare an empty numpy array to hold the reprojected data
-        aligned_ethz = np.empty((height, width), dtype="float32")
+        aligned_ethz = np.empty((height, width), dtype="float16")
 
         with rasterio.open(ETHZ_COCOA_MAP_FILEPATH) as src:
             # Figure out what bounding box to read from the source ETHZ raster
