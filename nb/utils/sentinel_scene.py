@@ -101,7 +101,7 @@ class SentinelScene:
     @staticmethod
     def _plot(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> None:
         """Plot a downscaled version of the img."""
-        height, width, _ = img.shape
+        height, width = img.shape[:2]
 
         # Cheap downscale to match max resolution
         if height >= max_resolution_px:
@@ -112,16 +112,31 @@ class SentinelScene:
         height_m, width_m = height * PX_TO_M, width * PX_TO_M
         extent = [0, width_m, height_m, 0]  # left, right, bottom, top
 
-        plt.imshow(img, extent=extent)
+        ax.imshow(img, extent=extent)
 
-        plt.xlabel("m")
-        plt.ylabel("m")
+        ax.set_xlabel("m")
+        ax.set_ylabel("m")
 
     def plot(self, max_resolution_px: int = 1_000) -> None:
-        plt.figure(figsize=(5, 5))
-        plt.title(f"Processed RGB \n {self.dt} \n {self.scene_id}")
+        """Plot RGB, Red-Edge, NIR & SWIR"""
+        _, axes = plt.subplots(1, 4, figsize=(10, 3), sharey=True)
+        plt.suptitle(f"{self.dt} \n {self.scene_id}")
 
-        SentinelScene._plot(self.processed_rgb, max_resolution_px=max_resolution_px, ax=plt.gca())
+        # Plot RGB
+        axes[0].set_title("Processed RGB")
+        SentinelScene._plot(self.processed_rgb, max_resolution_px=max_resolution_px, ax=axes[0])
+
+        # Plot Red Edge + NIR + SWIR
+        axes[1].set_title("Red Edge")
+        SentinelScene._plot(self.red_edge, max_resolution_px=max_resolution_px, ax=axes[1])
+
+        axes[2].set_title("Near Infrared (NIR)")
+        SentinelScene._plot(self.nir, max_resolution_px=max_resolution_px, ax=axes[2])
+
+        axes[3].set_title("Short-Wave Infrared (SWIR)")
+        SentinelScene._plot(self.nir, max_resolution_px=max_resolution_px, ax=axes[3])
+
+        plt.tight_layout()
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
