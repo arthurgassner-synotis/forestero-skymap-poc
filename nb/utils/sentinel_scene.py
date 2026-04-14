@@ -16,6 +16,7 @@ from rasterio.warp import reproject, transform_bounds
 from rasterio.windows import from_bounds as window_from_bounds
 from scipy.ndimage import zoom
 from shapely import Polygon
+from shapely.geometry import MultiPoint
 
 from .constants import ETHZ_COCOA_MAP_FILEPATH, SENTINEL_SCENES_FOLDERPATH
 
@@ -29,6 +30,13 @@ class SentinelScene:
     dt: date
     bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS = rasterio.crs.CRS.from_epsg(4326)
+
+    @property
+    def center_lon_lat(self) -> tuple[float, float]:
+        min_lon, min_lat, max_lon, max_lat = self.bounds
+        mid_lon = min_lon + (min_lon + max_lon) / 2
+        mid_lat = min_lat + (min_lat + max_lat) / 2
+        return mid_lon, mid_lat
 
     @property
     def array_size(self) -> str:
@@ -145,8 +153,18 @@ class SentinelScene:
 
         plt.tight_layout()
 
-    def plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
-        self._plot(max_resolution_px, plot_scale)
+    def plot(
+        self, lon_lats: list[tuple[float, float]] | None = None, padding_m: int | None = None, max_resolution_px: int = 1_000, plot_scale: float = 1.0
+    ) -> None:
+        if padding_m is None:
+            self._plot(max_resolution_px, plot_scale)
+        else:
+            if lon_lats is None:
+                lon_lats = [self.center_lon_lat]
+
+            # Crop around lon,lat
+            cropped_sentinel_scene = self.crop(lon_lats=lon_lats, padding_m=padding_m)
+            cropped_sentinel_scene._plot(max_resolution_px, plot_scale)
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
@@ -177,49 +195,61 @@ class SentinelScene:
         plt.xlabel("m")
         plt.ylabel("m")
 
-    def crop(self, bbox: tuple[float, float, float, float], padding_m: int = 0) -> "SentinelScene":
-        """Crop the scene using an EPSG:4326 bounding box (min_lon, min_lat, max_lon, max_lat)"""
+    def crop(self, lon_lats: list[tuple[float, float]], padding_m: int = 0) -> "SentinelScene":
+        """Crop the scene around points (lon, lat), padding around them."""
+        min_lon, min_lat, max_lon, max_lat = MultiPoint(lon_lats).bounds
 
-        min_lon, min_lat, max_lon, max_lat = bbox
+        # Expand the bounding box using padding (convert meters to degrees)
+        if padding_m > 0:
+            mid_lat = (min_lat + max_lat) / 2.0
 
-        # EPSG:4326 -> ? conversion
-        n_left, n_bottom, n_right, n_top = transform_bounds(self.crs, self.c, min_lon, min_lat, max_lon, max_lat)
-        # FIXME
-        raise NotImplementedError()
+            # Approximate conversion: 1 degree latitude ≈ 111,320 meters
+            meters_per_deg_lat = 111320.0
 
-        # Apply padding, assuming self._crs uses meters
-        n_left -= padding_m
-        n_bottom -= padding_m
-        n_right += padding_m
-        n_top += padding_m
+            # Longitude degree length shrinks with latitude (cosine of latitude)
+            meters_per_deg_lon = meters_per_deg_lat * np.cos(np.radians(mid_lat))
 
-        # Figure out pixel resolution
-        height, width, _ = self.rgb_re_nir_swir.shape
-        x_res = (self.bounds.right - self.bounds.left) / width
-        y_res = (self.bounds.top - self.bounds.bottom) / height
+            pad_deg_lon = padding_m / meters_per_deg_lon
+            pad_deg_lat = padding_m / meters_per_deg_lat
 
-        # Spatial coordinates -> pixel indices conversion
-        # (row 0 is at bounds.top, col 0 is at bounds.left)
-        col_min = int(max(0, (n_left - self.bounds.left) / x_res))
-        col_max = int(min(width, (n_right - self.bounds.left) / x_res))
-        row_min = int(max(0, (self.bounds.top - n_top) / y_res))
-        row_max = int(min(height, (self.bounds.top - n_bottom) / y_res))
+            min_lon -= pad_deg_lon
+            max_lon += pad_deg_lon
+            min_lat -= pad_deg_lat
+            max_lat += pad_deg_lat
 
-        # Ensure cropping makes sense
-        if col_min >= col_max or row_min >= row_max:
-            raise ValueError("The provided bounding box does not intersect this scene.")
+        height, width = self.rgb_re_nir_swir.shape[:2]
 
-        # Crop
-        cropped_rgb_re_nir_swir = self.rgb_re_nir_swir[row_min:row_max, col_min:col_max, :]
+        # Compute pixel resolution (degrees per pixel)
+        res_x = (self.bounds.right - self.bounds.left) / width
+        res_y = (self.bounds.top - self.bounds.bottom) / height
 
-        # Update .bounds
-        new_left = self.bounds.left + (col_min * x_res)
-        new_right = self.bounds.left + (col_max * x_res)
-        new_top = self.bounds.top - (row_min * y_res)
-        new_bottom = self.bounds.top - (row_max * y_res)
-        bounds = rasterio.coords.BoundingBox(new_left, new_bottom, new_right, new_top)
+        # Map geographical coordinates to pixel indices
+        x_min = int(np.floor((min_lon - self.bounds.left) / res_x))
+        x_max = int(np.ceil((max_lon - self.bounds.left) / res_x))
 
-        return SentinelScene(bounds=bounds, scene_id=self.scene_id, rgb_re_nir_swir=cropped_rgb_re_nir_swir, dt=self.dt)
+        y_min = int(np.floor((self.bounds.top - max_lat) / res_y))
+        y_max = int(np.ceil((self.bounds.top - min_lat) / res_y))
+
+        # Prevent out-of-bounds slicing
+        x_min, x_max = max(0, x_min), min(width, x_max)
+        y_min, y_max = max(0, y_min), min(height, y_max)
+
+        if x_min >= x_max or y_min >= y_max:
+            raise ValueError("The requested bounding box is entirely outside the scene bounds.")
+
+        # Crop the primary array
+        cropped_rgb_re_nir_swir = self.rgb_re_nir_swir[y_min:y_max, x_min:x_max].copy()
+
+        # Calculate the exact bounding box of the new cropped array
+        new_left = self.bounds.left + (x_min * res_x)
+        new_right = self.bounds.left + (x_max * res_x)
+        new_top = self.bounds.top - (y_min * res_y)
+        new_bottom = self.bounds.top - (y_max * res_y)
+        new_bounds = rasterio.coords.BoundingBox(left=new_left, bottom=new_bottom, right=new_right, top=new_top)
+
+        return SentinelScene(
+            scene_id=f"{self.scene_id}_cropped", rgb_re_nir_swir=cropped_rgb_re_nir_swir, dt=self.dt, bounds=new_bounds, crs=self.crs
+        )
 
     @staticmethod
     def load_raster(p: Path) -> np.ndarray:
