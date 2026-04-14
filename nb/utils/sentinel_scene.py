@@ -99,7 +99,7 @@ class SentinelScene:
         return Xy[["tci", "ndvi", "nir", "swir"]], Xy[["y_proba"]]
 
     @staticmethod
-    def _plot(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> None:
+    def _plot_img(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> None:
         """Plot a downscaled version of the img."""
         height, width = img.shape[:2]
 
@@ -117,26 +117,29 @@ class SentinelScene:
         ax.set_xlabel("m")
         ax.set_ylabel("m")
 
-    def plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
+    def _plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
         """Plot RGB, Red-Edge, NIR & SWIR"""
         _, axes = plt.subplots(1, 4, figsize=(10 * plot_scale, 3 * plot_scale), sharey=True)
         plt.suptitle(f"{self.dt} \n {self.scene_id}")
 
         # Plot RGB
         axes[0].set_title("Processed RGB")
-        SentinelScene._plot(self.processed_rgb, max_resolution_px=max_resolution_px, ax=axes[0])
+        SentinelScene._plot_img(self.processed_rgb, max_resolution_px=max_resolution_px, ax=axes[0])
 
         # Plot Red Edge + NIR + SWIR
         axes[1].set_title("Red Edge")
-        SentinelScene._plot(self.red_edge, max_resolution_px=max_resolution_px, ax=axes[1])
+        SentinelScene._plot_img(self.red_edge, max_resolution_px=max_resolution_px, ax=axes[1])
 
         axes[2].set_title("Near Infrared (NIR)")
-        SentinelScene._plot(self.nir, max_resolution_px=max_resolution_px, ax=axes[2])
+        SentinelScene._plot_img(self.nir, max_resolution_px=max_resolution_px, ax=axes[2])
 
         axes[3].set_title("Short-Wave Infrared (SWIR)")
-        SentinelScene._plot(self.nir, max_resolution_px=max_resolution_px, ax=axes[3])
+        SentinelScene._plot_img(self.nir, max_resolution_px=max_resolution_px, ax=axes[3])
 
         plt.tight_layout()
+
+    def plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
+        self._plot(max_resolution_px, plot_scale)
 
     def plot_bbox(self, polygon: Polygon | None = None, padding_m: int = 100, plot_ethz: bool = False) -> None:
         # Figure out bounds
