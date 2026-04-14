@@ -122,7 +122,7 @@ class SentinelScene:
 
     def _plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
         """Plot RGB, Red-Edge, NIR, SWIR & ETHZ probability map"""
-        _, axes = plt.subplots(1, 5, figsize=(10 * plot_scale, 3 * plot_scale), sharey=True)
+        _, axes = plt.subplots(1, 5, figsize=(13 * plot_scale, 3 * plot_scale), sharey=True)
         plt.suptitle(f"{self.dt} \n {self.scene_id}")
 
         # Plot RGB
