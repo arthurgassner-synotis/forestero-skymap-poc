@@ -9,6 +9,7 @@ import pandas as pd
 import rasterio
 from loguru import logger
 from matplotlib import pyplot as plt
+from matplotlib.image import AxesImage
 from rasterio.enums import Resampling
 from rasterio.transform import from_bounds
 from rasterio.warp import reproject, transform_bounds
@@ -99,7 +100,7 @@ class SentinelScene:
         return Xy[["tci", "ndvi", "nir", "swir"]], Xy[["y_proba"]]
 
     @staticmethod
-    def _plot_img(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> None:
+    def _plot_img(img: np.ndarray, max_resolution_px: int, ax: plt.axes._axes.Axes) -> AxesImage:
         """Plot a downscaled version of the img."""
         height, width = img.shape[:2]
 
@@ -112,14 +113,16 @@ class SentinelScene:
         height_m, width_m = height * PX_TO_M, width * PX_TO_M
         extent = [0, width_m, height_m, 0]  # left, right, bottom, top
 
-        ax.imshow(img, extent=extent)
-
         ax.set_xlabel("m")
         ax.set_ylabel("m")
 
+        im = ax.imshow(img, extent=extent)
+
+        return im
+
     def _plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
-        """Plot RGB, Red-Edge, NIR & SWIR"""
-        _, axes = plt.subplots(1, 4, figsize=(10 * plot_scale, 3 * plot_scale), sharey=True)
+        """Plot RGB, Red-Edge, NIR, SWIR & ETHZ probability map"""
+        _, axes = plt.subplots(1, 5, figsize=(10 * plot_scale, 3 * plot_scale), sharey=True)
         plt.suptitle(f"{self.dt} \n {self.scene_id}")
 
         # Plot RGB
@@ -135,6 +138,10 @@ class SentinelScene:
 
         axes[3].set_title("Short-Wave Infrared (SWIR)")
         SentinelScene._plot_img(self.nir, max_resolution_px=max_resolution_px, ax=axes[3])
+
+        axes[4].set_title("ETHZ map")
+        im = SentinelScene._plot_img(self.ethz_array, max_resolution_px=max_resolution_px, ax=axes[4])
+        plt.colorbar(im, ax=axes[4], fraction=0.03, pad=0.04)
 
         plt.tight_layout()
 
@@ -277,7 +284,7 @@ class SentinelScene:
         return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgb_re_nir_swir=rgb_re_nir_swir)
 
     @cached_property
-    def ethz_array(self) -> None:
+    def ethz_array(self) -> np.ndarray:
         """Load an external ETHZ raster and dynamically aligns/resamples it to perfectly match the bounds, CRS, and resolution."""
         height, width, _ = self.rgb_re_nir_swir.shape
 
