@@ -117,9 +117,9 @@ class SentinelScene:
         ax.set_xlabel("m")
         ax.set_ylabel("m")
 
-    def plot(self, max_resolution_px: int = 1_000) -> None:
+    def plot(self, max_resolution_px: int = 1_000, plot_scale: float = 1.0) -> None:
         """Plot RGB, Red-Edge, NIR & SWIR"""
-        _, axes = plt.subplots(1, 4, figsize=(10, 3), sharey=True)
+        _, axes = plt.subplots(1, 4, figsize=(10 * plot_scale, 3 * plot_scale), sharey=True)
         plt.suptitle(f"{self.dt} \n {self.scene_id}")
 
         # Plot RGB
