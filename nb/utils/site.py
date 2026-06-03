@@ -81,21 +81,22 @@ class Site:
             axes = [axes]
 
         for ax, ss in zip(axes, self.sentinel_scenes):
-            cropped_ss = ss.crop(self.bbox, padding_m=padding_m)
+            min_lon, min_lat, max_lon, max_lat = self.bbox
+            cropped_ss = ss.crop([(min_lon, min_lat), (max_lon, max_lat)], padding_m=padding_m)
 
             # Figure out ticks
-            bounds = cropped_ss._bounds
+            bounds = cropped_ss.bounds
             extent = (0, bounds.right - bounds.left, 0, bounds.top - bounds.bottom)
 
             ax.imshow(cropped_ss.processed_rgb, extent=extent)
 
             # Plot the area
-            gs = self.gs.to_crs(ss._crs)
+            gs = self.gs.to_crs(ss.crs)
             gs = gs.translate(xoff=-bounds.left, yoff=-bounds.bottom)  # So the gs aligns with the 0-based extent
             gs.plot(ax=ax, color="red", alpha=0.8)
 
             # Plot the trees
-            gdf = self.gdf.to_crs(ss._crs)
+            gdf = self.gdf.to_crs(ss.crs)
             gdf = gdf.translate(xoff=-bounds.left, yoff=-bounds.bottom)
             gdf.plot(ax=ax, color="black", marker="x", markersize=10)
 
