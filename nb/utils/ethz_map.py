@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import rasterio
 from loguru import logger
@@ -37,3 +38,8 @@ class ETHZMap:
         logger.info(f"Memory used by array: {data.nbytes / (1024**3):.2f} GB")
 
         return ETHZMap(profile=profile, map=data)
+
+    def plot(self, scale_factor: int = 50) -> None:
+        """Plot the full map"""
+        plt.imshow(self.map[::scale_factor, ::scale_factor])
+        plt.title(f"ETHZ map (scale: {scale_factor})")
