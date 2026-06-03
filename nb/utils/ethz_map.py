@@ -86,12 +86,12 @@ class ETHZMap:
 
         cropped_map = self.map[start_row:end_row:scale_factor, start_col:end_col:scale_factor]
 
-        plt.figure(figsize=(10, 8))
+        plt.figure(figsize=(10, 6))
 
         # Extent sets up the axis ticks using geographic limits: [left, right, bottom, top]
         extent = [left_lon, right_lon, bottom_lat, top_lat]
 
-        plt.imshow(cropped_map, extent=extent, cmap="viridis")
+        plt.imshow(cropped_map, extent=extent, cmap="viridis", vmin=0, vmax=100)
         plt.xlabel("Longitude (°)")
         plt.ylabel("Latitude (°)")
         plt.title(f"ETHZ Map Crop Around {len(lat_lons)} Locations (Padding: {padding_px}px, Scale: {scale_factor}x)")
