@@ -26,6 +26,11 @@ class Site:
         return [e.lat_lon for e in self.trees]
 
     @property
+    def available_scene_ids(self) -> list[str]:
+        """Only the already-downloaded scene IDs"""
+        return [e for e in self.scene_ids if SentinelScene.is_downloaded(e)]
+
+    @property
     def polygon(self) -> Polygon:
         return MultiPoint([e.point for e in self.trees]).convex_hull
 
@@ -50,7 +55,7 @@ class Site:
     @cached_property
     def sentinel_scenes(self) -> list["SentinelScene"]:
         sentinel_scenes = []
-        for scene_id in self.scene_ids:
+        for scene_id in self.available_scene_ids:
             sentinel_scenes.append(SentinelScene.from_scene_id(scene_id))
 
         return sentinel_scenes
@@ -75,7 +80,7 @@ class Site:
         logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
 
     def plot_over_scenes(self, padding_m: int = 100) -> None:
-        f, axes = plt.subplots(1, len(self.scene_ids), figsize=(5, 6))
+        f, axes = plt.subplots(1, len(self.available_scene_ids), figsize=(5, 6))
 
         if not isinstance(axes, list):
             axes = [axes]

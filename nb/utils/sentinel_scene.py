@@ -285,6 +285,32 @@ class SentinelScene:
         return all_bounds[0], all_crs[0]
 
     @staticmethod
+    def is_downloaded(scene_id: str) -> bool:
+        """Whether a scene-id has been downloaded."""
+
+        # Check each raster in their .tif
+        p = SENTINEL_SCENES_FOLDERPATH / scene_id
+        red_raster_filepath = p / f"{p.name}_red.tif"
+        green_raster_filepath = p / f"{p.name}_green.tif"
+        blue_raster_filepath = p / f"{p.name}_blue.tif"
+        red_edge_raster_filepath = p / f"{p.name}_rededge1.tif"
+        nir_raster_filepath = p / f"{p.name}_nir.tif"
+        swir_raster_filepath = p / f"{p.name}_swir22.tif"
+
+        for fp in [
+            red_raster_filepath,
+            green_raster_filepath,
+            blue_raster_filepath,
+            red_edge_raster_filepath,
+            nir_raster_filepath,
+            swir_raster_filepath,
+        ]:
+            if not fp.is_file():
+                return False
+
+        return True
+
+    @staticmethod
     def from_scene_id(scene_id: str) -> "SentinelScene":
         """Load a SentinelScene from the data available at SENTINEL_SCENES_FOLDERPATH/"""
 
