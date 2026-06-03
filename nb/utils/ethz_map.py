@@ -46,7 +46,7 @@ class ETHZMap:
         plt.title(f"ETHZ map (scale: {scale_factor})")
         plt.colorbar(label="Map Values")
 
-    def plot_around_lat_lons(self, lat_lons: list[tuple[float, float]], padding_px: int = 10, scale_factor: int = 50) -> None:
+    def plot_around_lat_lons(self, lat_lons: list[tuple[float, float]], padding_px: int = 2, scale_factor: int = 1) -> None:
         """Plot around the provided lat,lon."""
 
         if not lat_lons:
@@ -97,8 +97,7 @@ class ETHZMap:
         plt.title(f"ETHZ Map Crop Around Locations (Padding: {padding_px}px, Scale: {scale_factor}x)")
         plt.colorbar(label="Map Values")
 
-        # Optional: Plot the target points on top of the image to make sure they are centered
-        # Adjusting coordinates back for the downsampling step if necessary
+        # Plot the target points on top of the image to make sure they are centered
         lons = [pt[1] for pt in lat_lons]
         lats = [pt[0] for pt in lat_lons]
         plt.scatter(lons, lats, color="red", marker="x", s=50, label="Target Locations")

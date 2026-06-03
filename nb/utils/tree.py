@@ -11,6 +11,11 @@ from .constants import GHANA_GDF
 class Tree:
     point: Point
 
+    @property
+    def lat_lon(self) -> tuple[float, float]:
+        lon, lat = self.point.coords[0]
+        return lat, lon
+
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(6, 5))
 

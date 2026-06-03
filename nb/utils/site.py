@@ -21,6 +21,11 @@ class Site:
     scene_ids: set[str] = field(default_factory=set)
 
     @property
+    def lat_lons(self) -> list[tuple[float, float]]:
+        """Lat/Lon of all trees."""
+        return [e.lat_lon for e in self.trees]
+
+    @property
     def polygon(self) -> Polygon:
         return MultiPoint([e.point for e in self.trees]).convex_hull
 
