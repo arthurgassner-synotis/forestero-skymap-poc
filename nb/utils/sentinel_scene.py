@@ -17,6 +17,7 @@ from rasterio.windows import from_bounds as window_from_bounds
 from scipy.ndimage import zoom
 from shapely import Polygon
 from shapely.geometry import MultiPoint
+from tqdm import tqdm
 
 from .constants import ETHZ_COCOA_MAP_FILEPATH, SENTINEL_SCENES_FOLDERPATH
 
@@ -102,7 +103,8 @@ class SentinelScene:
                 "nir": self.nir.flatten(),
                 "swir": self.swir.flatten(),
                 "y_proba": self.ethz_array.flatten(),
-            }
+            },
+            dtype="float16",
         )
         Xy = Xy.dropna().reset_index(drop=True)
         return Xy[["tci", "ndvi", "nir", "swir"]], Xy[["y_proba"]]
@@ -312,6 +314,19 @@ class SentinelScene:
         bounds_4326 = transform_bounds(original_crs, "EPSG:4326", *original_bounds)
 
         return SentinelScene(bounds=rasterio.coords.BoundingBox(*bounds_4326), dt=dt, scene_id=scene_id, rgb_re_nir_swir=rgb_re_nir_swir)
+
+    @staticmethod
+    def Xy_from_scene_ids(scene_ids: list[str]) -> tuple[pd.DataFrame, pd.Series]:
+        """Compute Xy from SentinelScene's available at SENTINEL_SCENES_FOLDERPATH/"""
+
+        Xs, ys = [], []
+        for scene_id in tqdm(scene_ids, total=len(scene_ids)):
+            ss = SentinelScene.from_scene_id(scene_id)
+            X, y = ss.compute_Xy()
+            Xs.append(X)
+            ys.append(y)
+
+        return pd.concat(Xs), pd.concat(ys)
 
     @cached_property
     def ethz_array(self) -> np.ndarray:
