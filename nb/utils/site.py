@@ -3,6 +3,7 @@ from functools import cached_property
 
 import geopandas as gpd
 import matplotlib.pyplot as plt
+import numpy as np
 from loguru import logger
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 from shapely.geometry import MultiPoint, Polygon, box
@@ -80,9 +81,9 @@ class Site:
         logger.info(f"Added {len(added_scene_ids)} scenes ({len(self.scene_ids)} total)")
 
     def plot_over_scenes(self, padding_m: int = 100) -> None:
-        f, axes = plt.subplots(1, len(self.available_scene_ids), figsize=(5, 6))
+        f, axes = plt.subplots(1, len(self.available_scene_ids), figsize=(5 * len(self.available_scene_ids), 6))
 
-        if not isinstance(axes, list):
+        if not isinstance(axes, (list, np.ndarray)):
             axes = [axes]
 
         for ax, ss in zip(axes, self.sentinel_scenes):
