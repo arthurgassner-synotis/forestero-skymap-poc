@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "dask>=2026.3.0",
     "earthengine-api>=1.7.21",
     "geodatasets>=2026.1.0",
     "geopandas>=1.1.2",
