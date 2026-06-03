@@ -42,8 +42,8 @@ class ETHZMap:
 
     def plot(self, scale_factor: int = 50) -> None:
         """Plot the full map"""
-        plt.imshow(self.map[::scale_factor, ::scale_factor])
-        plt.title(f"ETHZ map (scale: {scale_factor})")
+        plt.imshow(self.map[::scale_factor, ::scale_factor], vmin=0, vmax=100, cmap="viridis")
+        plt.title(f"ETHZ map (scale: {scale_factor}x)")
         plt.colorbar(label="Map Values")
 
     def plot_around_lat_lons(self, lat_lons: list[tuple[float, float]], padding_px: int = 2, scale_factor: int = 1) -> None:
@@ -94,7 +94,7 @@ class ETHZMap:
         plt.imshow(cropped_map, extent=extent, cmap="viridis")
         plt.xlabel("Longitude (°)")
         plt.ylabel("Latitude (°)")
-        plt.title(f"ETHZ Map Crop Around Locations (Padding: {padding_px}px, Scale: {scale_factor}x)")
+        plt.title(f"ETHZ Map Crop Around {len(lat_lons)} Locations (Padding: {padding_px}px, Scale: {scale_factor}x)")
         plt.colorbar(label="Map Values")
 
         # Plot the target points on top of the image to make sure they are centered
