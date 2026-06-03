@@ -103,3 +103,33 @@ class ETHZMap:
         plt.scatter(lons, lats, color="red", marker="x", s=50, label="Target Locations")
         plt.legend()
         plt.show()
+
+    def get_values(self, lat_lons: list[tuple[float, float]]) -> list[float | None]:
+        """Get the ETHZ values of each lat,lon when aligning that point with the map."""
+
+        if not lat_lons:
+            return []
+
+        probas = []
+        affine_transform = self.profile["transform"]
+        height, width = self.map.shape
+
+        for lat, lon in lat_lons:
+            # lat/lon => pixel index
+            row, col = rasterio.transform.rowcol(affine_transform, lon, lat)
+
+            # Ensure px index falls within boundary
+            if not (0 <= row < height and 0 <= col < width):
+                logger.warning(f"Point (Lat: {lat}, Lon: {lon}) is out of bounds for this map instance.")
+                probas.append(None)
+                continue
+
+            value = self.map[row, col]
+
+            if value == self.profile.get("nodata"):
+                value = None
+            else:
+                value = int(value)
+            probas.append(value)
+
+        return probas
