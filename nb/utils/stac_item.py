@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date
-from functools import cached_property
 from pathlib import Path
 
 import joblib
@@ -17,66 +16,9 @@ PX_TO_M = 10
 
 @dataclass
 class STACItem:
-    scene_id: str
-    rgb_re_nir_swir: np.ndarray  # RGB RE NIR SWIR
-    dt: date
+    id: str
     bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS
-
-    @property
-    def array_size(self) -> str:
-        """Size in Giga Bytes"""
-        return f"{self.rgb_re_nir_swir.nbytes / (1024**3):.2f} GB"
-
-    @property
-    def red(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 0]
-
-    @property
-    def green(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 1]
-
-    @property
-    def blue(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 2]
-
-    @property
-    def red_edge(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 3]
-
-    @property
-    def nir(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 4]
-
-    @property
-    def swir(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 5]
-
-    @property
-    def ndvi(self) -> np.ndarray:
-        """Normalized Difference Vegetation Index"""
-        return (self.nir - self.red) / (self.nir + self.red)
-
-    @property
-    def tci(self) -> np.ndarray:
-        """Triangular Chlorophyll Index"""
-        return 1.2 * (self.red_edge - self.green) - 1.5 * (self.red - self.green) * np.sqrt(self.red_edge / self.red)
-
-    @cached_property
-    def processed_rgb(self) -> np.ndarray:
-        """Normalized & Gamma-corrected RGB."""
-        # Normalize each band
-        red = (self.red - np.nanmin(self.red)) / (np.nanmax(self.red) - np.nanmin(self.red))
-        green = (self.green - np.nanmin(self.green)) / (np.nanmax(self.green) - np.nanmin(self.green))
-        blue = (self.blue - np.nanmin(self.blue)) / (np.nanmax(self.blue) - np.nanmin(self.blue))
-
-        # Brighten
-        gamma = 2.5  # Hand-picked so that it looks nice
-        red = np.power(red, 1 / gamma)
-        green = np.power(green, 1 / gamma)
-        blue = np.power(blue, 1 / gamma)
-
-        return np.dstack((red, green, blue))
 
     @staticmethod
     def get_downloaded_scene_ids() -> list[str]:
@@ -127,7 +69,7 @@ class STACItem:
         return bbox_wgs84, rasterio.crs.CRS.from_string(crs_str)
 
     @staticmethod
-    def find_from_bbox(bbox_wgs84: tuple[float, float, float, float]) -> list["STACItem"]:
+    def find_from_bbox(bbox_wgs84: tuple[float, float, float, float]) -> list[str]:
         """Load STACItems that itersects with the provided WGS84 bbox."""
 
         # Unpack the target WGS84 bbox: (min_lon, min_lat, max_lon, max_lat)
