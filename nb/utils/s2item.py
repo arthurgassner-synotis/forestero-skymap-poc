@@ -54,6 +54,13 @@ class S2Item:
 
         return minx1 <= maxx2 and maxx1 >= minx2 and miny1 <= maxy2 and maxy1 >= miny2
 
+    def contains(self, lon: float, lat: float) -> bool:
+        min_lon, min_lat, max_lon, max_lat = self.bbox_wgs84
+        if min_lon <= lon <= max_lon and min_lat <= lat <= max_lat:
+            return True
+
+        return False
+
     @staticmethod
     def _load_raster(p: Path) -> np.ndarray:
         """Load raster image."""
