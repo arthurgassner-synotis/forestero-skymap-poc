@@ -31,6 +31,10 @@ class S2Item:
         crs_str = self.stac_item.properties["proj:code"]
         return rasterio.crs.CRS.from_string(crs_str)
 
+    @property
+    def cloud_cover(self) -> float:
+        return self.stac_item.properties["eo:cloud_cover"]
+
     @staticmethod
     def load_all() -> list["S2Item"]:
         s2item_filepaths = SENTINEL_SCENES_FOLDERPATH.glob("*/stac_item.joblib")
