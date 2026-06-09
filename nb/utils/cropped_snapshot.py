@@ -209,4 +209,4 @@ class CroppedSnapshot:
         ndvi = np.max(self.ndvi)
         tci = np.max(self.tci)
 
-        return np.array([tci, ndvi])
+        return np.array([ndvi, tci])
