@@ -46,7 +46,7 @@ class Site:
         return tuple(self.polygon.bounds)
 
     @staticmethod
-    def from_id(site_id: str) -> "Site":
+    def load_from_id(site_id: str) -> "Site":
         sites = joblib.load(FORESTERO_SITES_PKL_FILEPATH)
 
         selected_sites = [e for e in sites if e.id == site_id]
@@ -60,6 +60,10 @@ class Site:
             raise ValueError()
 
         return selected_sites[0]
+
+    @staticmethod
+    def load_all() -> list["Site"]:
+        return joblib.load(FORESTERO_SITES_PKL_FILEPATH)
 
     def plot(self) -> None:
         f, axes = plt.subplots(1, 2, figsize=(5, 3))
