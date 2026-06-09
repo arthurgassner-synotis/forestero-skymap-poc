@@ -1,16 +1,13 @@
 from dataclasses import dataclass
-from pathlib import Path
 
+import geopandas as gpd
 import joblib
-import numpy as np
 import rasterio
-from loguru import logger
 from pystac.item import Item as PySTACItem
+from shapely.geometry import box
 
 from .constants import SENTINEL_SCENES_FOLDERPATH
 from .site import Site
-
-PX_TO_M = 10
 
 
 @dataclass
@@ -34,6 +31,10 @@ class S2Item:
     @property
     def cloud_cover(self) -> float:
         return self.stac_item.properties["eo:cloud_cover"]
+
+    @property
+    def gdf(self) -> gpd.GeoDataFrame:
+        return gpd.GeoDataFrame(geometry=[box(*self.bbox_wgs84)], crs="EPSG:4326")
 
     @staticmethod
     def load_all() -> list["S2Item"]:
@@ -60,37 +61,6 @@ class S2Item:
             return True
 
         return False
-
-    @staticmethod
-    def _load_raster(p: Path) -> np.ndarray:
-        """Load raster image."""
-        with rasterio.open(p) as src:
-            raster = src.read(1)
-
-            # 0.0 is the no-data value
-            raster = raster.astype(float)
-            raster[raster == 0.0] = np.nan
-
-            return raster
-
-    @staticmethod
-    def _load_bounds_and_crs(scene_id: str) -> tuple[rasterio.coords.BoundingBox, rasterio.crs.CRS]:
-        all_bounds, all_crs = [], []
-        for suffix in ["_red", "_green", "_blue", "_nir", "_swir22"]:
-            p = SENTINEL_SCENES_FOLDERPATH / scene_id / f"{scene_id}{suffix}.tif"
-            with rasterio.open(p) as src:
-                all_bounds.append(src.bounds)
-                all_crs.append(src.crs)
-
-        if len(set(all_bounds)) != 1:
-            logger.error(f"Several bounds found for {scene_id}: {set(all_bounds)}")
-            raise ValueError()
-
-        if len(set(all_crs)) != 1:
-            logger.error(f"Several CRS's found for {scene_id}: {set(all_crs)}")
-            raise ValueError()
-
-        return all_bounds[0], all_crs[0]
 
     @staticmethod
     def find_from_site(site: Site) -> list["S2Item"]:
