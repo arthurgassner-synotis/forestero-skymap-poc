@@ -1,3 +1,4 @@
+import concurrent.futures
 from dataclasses import dataclass
 from functools import cached_property
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import rasterio
 from rasterio.warp import transform_bounds
+from rasterio.windows import Window
 from rasterio.windows import from_bounds as window_from_bounds
 from scipy.ndimage import zoom
 
@@ -70,39 +72,45 @@ class CroppedSnapshot:
         return np.dstack((red, green, blue))
 
     @staticmethod
-    def _load_from_tif(tif_path: Path, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> np.ndarray:
-        """Loads a subset of a raster around a WGS84 bbox, with added padding in meters.
+    def _load_from_tif(tif_path: Path, lonlats_wgs84: list[tuple[float, float]], padding_m: float = 0.0) -> np.ndarray:
+        """Loads a subset of a raster around a list of WGS84 coordinates, with optional metric padding.
 
         Args:
             tif_path: Path to the raster file.
-            bbox_wgs84: Tuple of (min_lon, min_lat, max_lon, max_lat).
-            padding_m: Padding to add in all directions, in meters.
+            lonlats_wgs84: List of (lon, lat) tuples.
+            padding_m: Padding to add in all directions, in meters. Can be 0.
 
         Returns:
             data: The cropped numpy array.
-            transform: The affine transform for the new cropped image.
         """
-        min_lon, min_lat, max_lon, max_lat = bbox_wgs84
+        # Extract the bounding box from the list of coordinates
+        lons = [c[0] for c in lonlats_wgs84]
+        lats = [c[1] for c in lonlats_wgs84]
+        min_lon, max_lon = min(lons), max(lons)
+        min_lat, max_lat = min(lats), max(lats)
 
         with rasterio.open(tif_path) as src:
             # Project the WGS84 bbox into the raster's native CRS
             minx, miny, maxx, maxy = transform_bounds("EPSG:4326", src.crs, min_lon, min_lat, max_lon, max_lat)
 
-            # Add padding in meters
-            unit = src.crs.linear_units
-            if unit not in ["metre", "meter"]:
-                raise ValueError()
+            # Only process padding and enforce metric CRS if padding > 0
+            if padding_m > 0:
+                unit = src.crs.linear_units
+                if unit not in ["metre", "meter"]:
+                    raise ValueError(f"Cannot apply padding in meters. Raster CRS unit is '{unit}'.")
 
-            minx -= padding_m
-            miny -= padding_m
-            maxx += padding_m
-            maxy += padding_m
+                minx -= padding_m
+                miny -= padding_m
+                maxx += padding_m
+                maxy += padding_m
 
             # Convert the spatial bounding box into a pixel/array Window
             window = window_from_bounds(minx, miny, maxx, maxy, transform=src.transform)
+            window = window.round_offsets().round_lengths()
+            window = Window(col_off=window.col_off, row_off=window.row_off, width=max(1, window.width), height=max(1, window.height))
 
             # Read the data within that window
-            # boundless=True pads the array with fill_values if padded bbox extends beyond the actual edges of the raster image.
+            # boundless=True pads the array with fill_values if padded bbox extends beyond edges.
             data = src.read(1, window=window, boundless=True, fill_value=src.nodata)
 
         return data
@@ -111,12 +119,32 @@ class CroppedSnapshot:
     def load_from_s2item(s2item: S2Item, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> "CroppedSnapshot":
         # Load each raster in their .tif
         p = SENTINEL_SCENES_FOLDERPATH / s2item.id
-        red = CroppedSnapshot._load_from_tif(p / f"{p.name}_red.tif", bbox_wgs84, padding_m)
-        green = CroppedSnapshot._load_from_tif(p / f"{p.name}_green.tif", bbox_wgs84, padding_m)
-        blue = CroppedSnapshot._load_from_tif(p / f"{p.name}_blue.tif", bbox_wgs84, padding_m)
-        red_edge = CroppedSnapshot._load_from_tif(p / f"{p.name}_rededge1.tif", bbox_wgs84, padding_m)
-        nir = CroppedSnapshot._load_from_tif(p / f"{p.name}_nir.tif", bbox_wgs84, padding_m)
-        swir = CroppedSnapshot._load_from_tif(p / f"{p.name}_swir22.tif", bbox_wgs84, padding_m)
+        lonlats_wgs84 = [(bbox_wgs84[0], bbox_wgs84[1]), (bbox_wgs84[2], bbox_wgs84[3])]
+
+        band_names = ["red", "green", "blue", "rededge1", "nir", "swir22"]
+        results = {}
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            future_to_band = {
+                executor.submit(CroppedSnapshot._load_from_tif, p / f"{p.name}_{band}.tif", lonlats_wgs84, padding_m): band for band in band_names
+            }
+
+            # Retrieve the results as they finish
+            for future in concurrent.futures.as_completed(future_to_band):
+                band = future_to_band[future]
+                try:
+                    results[band] = future.result()
+                except Exception as exc:
+                    print(f"Loading {band} generated an exception: {exc}")
+                    raise
+
+        # Extract the results (ready to be passed into your class constructor)
+        red = results["red"]
+        green = results["green"]
+        blue = results["blue"]
+        red_edge = results["rededge1"]
+        nir = results["nir"]
+        swir = results["swir22"]
 
         # Calculate exact zoom factors to match the 10m 'red' band shape perfectly
         re_zoom_y = red.shape[0] / red_edge.shape[0]
@@ -146,3 +174,10 @@ class CroppedSnapshot:
             bounds = src.window_bounds(window)
 
         return CroppedSnapshot(s2id=s2item.id, rgb_re_nir_swir=rgb_re_nir_swir, bounds=bounds, crs=crs)
+
+    @property
+    def features(self) -> np.ndarray:
+        ndvi = np.max(self.ndvi)
+        tci = np.max(self.tci)
+
+        return np.array([tci, ndvi])
