@@ -9,10 +9,12 @@ from rasterio.windows import from_bounds as window_from_bounds
 from scipy.ndimage import zoom
 
 from .constants import SENTINEL_SCENES_FOLDERPATH
+from .s2item import S2Item
 
 
 @dataclass
 class CroppedSnapshot:
+    s2id: str  # Sentinel2 ID, i.e. S2Item's id
     rgb_re_nir_swir: np.ndarray  # RGB RE NIR SWIR
     bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS
@@ -68,7 +70,7 @@ class CroppedSnapshot:
         return np.dstack((red, green, blue))
 
     @staticmethod
-    def _load_crop(tif_path: Path, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> np.ndarray:
+    def _load_from_tif(tif_path: Path, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> np.ndarray:
         """Loads a subset of a raster around a WGS84 bbox, with added padding in meters.
 
         Args:
@@ -106,15 +108,15 @@ class CroppedSnapshot:
         return data
 
     @staticmethod
-    def load_crop_from_siid(siid: str, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> "CroppedSnapshot":
+    def load_from_s2item(s2item: S2Item, bbox_wgs84: tuple[float, float, float, float], padding_m: float) -> "CroppedSnapshot":
         # Load each raster in their .tif
-        p = SENTINEL_SCENES_FOLDERPATH / siid
-        red = CroppedSnapshot._load_crop(p / f"{p.name}_red.tif", bbox_wgs84, padding_m)
-        green = CroppedSnapshot._load_crop(p / f"{p.name}_green.tif", bbox_wgs84, padding_m)
-        blue = CroppedSnapshot._load_crop(p / f"{p.name}_blue.tif", bbox_wgs84, padding_m)
-        red_edge = CroppedSnapshot._load_crop(p / f"{p.name}_rededge1.tif", bbox_wgs84, padding_m)
-        nir = CroppedSnapshot._load_crop(p / f"{p.name}_nir.tif", bbox_wgs84, padding_m)
-        swir = CroppedSnapshot._load_crop(p / f"{p.name}_swir22.tif", bbox_wgs84, padding_m)
+        p = SENTINEL_SCENES_FOLDERPATH / s2item.id
+        red = CroppedSnapshot._load_from_tif(p / f"{p.name}_red.tif", bbox_wgs84, padding_m)
+        green = CroppedSnapshot._load_from_tif(p / f"{p.name}_green.tif", bbox_wgs84, padding_m)
+        blue = CroppedSnapshot._load_from_tif(p / f"{p.name}_blue.tif", bbox_wgs84, padding_m)
+        red_edge = CroppedSnapshot._load_from_tif(p / f"{p.name}_rededge1.tif", bbox_wgs84, padding_m)
+        nir = CroppedSnapshot._load_from_tif(p / f"{p.name}_nir.tif", bbox_wgs84, padding_m)
+        swir = CroppedSnapshot._load_from_tif(p / f"{p.name}_swir22.tif", bbox_wgs84, padding_m)
 
         # Calculate exact zoom factors to match the 10m 'red' band shape perfectly
         re_zoom_y = red.shape[0] / red_edge.shape[0]
@@ -143,4 +145,4 @@ class CroppedSnapshot:
             window = window_from_bounds(minx, miny, maxx, maxy, transform=src.transform)
             bounds = src.window_bounds(window)
 
-        return CroppedSnapshot(rgb_re_nir_swir=rgb_re_nir_swir, bounds=bounds, crs=crs)
+        return CroppedSnapshot(s2id=s2item.id, rgb_re_nir_swir=rgb_re_nir_swir, bounds=bounds, crs=crs)
