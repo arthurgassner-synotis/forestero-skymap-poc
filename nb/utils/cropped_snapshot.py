@@ -76,12 +76,12 @@ class CroppedSnapshot:
 
     @property
     def ndvi(self) -> np.ndarray:
-        """Normalized Difference Vegetation Index"""
+        """Normalized Difference Vegetation Index, ranging (-1,1)"""
         return (self.nir - self.red) / (self.nir + self.red)
 
     @property
     def tci(self) -> np.ndarray:
-        """Triangular Chlorophyll Index"""
+        """Triangular Chlorophyl Index, ranging (-1,1)"""
         return 1.2 * (self.red_edge - self.green) - 1.5 * (self.red - self.green) * np.sqrt(self.red_edge / self.red)
 
     @cached_property
