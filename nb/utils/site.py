@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field
 
 import geopandas as gpd
+import joblib
 import matplotlib.pyplot as plt
+from loguru import logger
 from matplotlib.ticker import MaxNLocator, StrMethodFormatter
 from shapely.geometry import MultiPoint, Polygon
 
-from .constants import GHANA_GDF
+from .constants import FORESTERO_SITES_PKL_FILEPATH, GHANA_GDF
 from .tree import Tree
 
 
@@ -39,12 +41,28 @@ class Site:
         return self.gs.to_crs(local_utm).area.iloc[0]
 
     @property
-    def bbox(self) -> tuple[float, float, float, float]:
+    def bbox_wgs84(self) -> tuple[float, float, float, float]:
         """min-lon, min-lat, max-lon, max-lat"""
         return tuple(self.polygon.bounds)
 
+    @staticmethod
+    def from_id(site_id: str) -> "Site":
+        sites = joblib.load(FORESTERO_SITES_PKL_FILEPATH)
+
+        selected_sites = [e for e in sites if e.id == site_id]
+
+        if len(selected_sites) == 0:
+            logger.error(f"Site not found: site_id={site_id}")
+            raise ValueError()
+
+        if len(selected_sites) > 1:
+            logger.error(f"Found {len(selected_sites)} sites with ID {site_id}. Only one allowed.")
+            raise ValueError()
+
+        return selected_sites[0]
+
     def plot(self) -> None:
-        f, axes = plt.subplots(1, 2, figsize=(5, 6))
+        f, axes = plt.subplots(1, 2, figsize=(5, 3))
 
         for ax in axes:
             ax.xaxis.set_major_locator(MaxNLocator(nbins=2))
