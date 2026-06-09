@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import rasterio
+from pystac.item import Item as PySTACItem
 from rasterio.warp import transform_bounds
 from rasterio.windows import Window
 from rasterio.windows import from_bounds as window_from_bounds
@@ -16,34 +17,62 @@ from .s2item import S2Item
 
 @dataclass
 class CroppedSnapshot:
-    s2id: str  # Sentinel2 ID, i.e. S2Item's id
     rgb_re_nir_swir: np.ndarray  # RGB RE NIR SWIR
     bounds: rasterio.coords.BoundingBox
     crs: rasterio.CRS
+    stac_item: PySTACItem
+
+    @property
+    def s2id(self) -> str:  # Sentinel2 ID, i.e. S2Item's id
+        return self.stac_item.id
 
     @property
     def red(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 0]
+        raw_red = self.rgb_re_nir_swir[:, :, 0]
+        red_asset = self.stac_item.assets["red"].to_dict()
+        offset = red_asset["raster:bands"][0]["offset"]
+        scale = red_asset["raster:bands"][0]["scale"]
+        return (raw_red + offset) * scale
 
     @property
     def green(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 1]
+        raw_green = self.rgb_re_nir_swir[:, :, 1]
+        green_asset = self.stac_item.assets["green"].to_dict()
+        offset = green_asset["raster:bands"][0]["offset"]
+        scale = green_asset["raster:bands"][0]["scale"]
+        return (raw_green + offset) * scale
 
     @property
     def blue(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 2]
+        raw_blue = self.rgb_re_nir_swir[:, :, 2]
+        blue_asset = self.stac_item.assets["blue"].to_dict()
+        offset = blue_asset["raster:bands"][0]["offset"]
+        scale = blue_asset["raster:bands"][0]["scale"]
+        return (raw_blue + offset) * scale
 
     @property
     def red_edge(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 3]
+        raw_red_edge = self.rgb_re_nir_swir[:, :, 3]
+        red_edge_asset = self.stac_item.assets["rededge1"].to_dict()
+        offset = red_edge_asset["raster:bands"][0]["offset"]
+        scale = red_edge_asset["raster:bands"][0]["scale"]
+        return (raw_red_edge + offset) * scale
 
     @property
     def nir(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 4]
+        raw_nir = self.rgb_re_nir_swir[:, :, 4]
+        nir_asset = self.stac_item.assets["nir"].to_dict()
+        offset = nir_asset["raster:bands"][0]["offset"]
+        scale = nir_asset["raster:bands"][0]["scale"]
+        return (raw_nir + offset) * scale
 
     @property
     def swir(self) -> np.ndarray:
-        return self.rgb_re_nir_swir[:, :, 5]
+        raw_swir = self.rgb_re_nir_swir[:, :, 5]
+        swir_asset = self.stac_item.assets["swir22"].to_dict()
+        offset = swir_asset["raster:bands"][0]["offset"]
+        scale = swir_asset["raster:bands"][0]["scale"]
+        return (raw_swir + offset) * scale
 
     @property
     def ndvi(self) -> np.ndarray:
@@ -64,7 +93,7 @@ class CroppedSnapshot:
         blue = (self.blue - np.nanmin(self.blue)) / (np.nanmax(self.blue) - np.nanmin(self.blue))
 
         # Brighten
-        gamma = 2.5  # Hand-picked so that it looks nice
+        gamma = 1.5  # Hand-picked so that it looks nice
         red = np.power(red, 1 / gamma)
         green = np.power(green, 1 / gamma)
         blue = np.power(blue, 1 / gamma)
@@ -173,7 +202,7 @@ class CroppedSnapshot:
             window = window_from_bounds(minx, miny, maxx, maxy, transform=src.transform)
             bounds = src.window_bounds(window)
 
-        return CroppedSnapshot(s2id=s2item.id, rgb_re_nir_swir=rgb_re_nir_swir, bounds=bounds, crs=crs)
+        return CroppedSnapshot(stac_item=s2item.stac_item, rgb_re_nir_swir=rgb_re_nir_swir, bounds=bounds, crs=crs)
 
     @property
     def features(self) -> np.ndarray:
