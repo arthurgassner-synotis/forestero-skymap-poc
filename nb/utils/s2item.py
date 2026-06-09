@@ -89,9 +89,9 @@ class S2Item:
     def find_from_site(site: Site) -> list["S2Item"]:
         """Load S2Items that overlap with the provided site's bbox."""
 
-        intersecting_s2_item_ids = []
-        for s2_item in S2Item.load_all():
-            if s2_item.has_overlap(site):
-                intersecting_s2_item_ids.append(s2_item.id)
+        intersecting_s2item_ids = []
+        for s2item in S2Item.load_all():
+            if s2item.has_overlap(site):
+                intersecting_s2item_ids.append(s2item.id)
 
-        return S2Item.load_from_ids(intersecting_s2_item_ids)
+        return S2Item.load_from_ids(intersecting_s2item_ids)
