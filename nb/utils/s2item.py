@@ -82,18 +82,6 @@ class S2Item:
         return all_bounds[0], all_crs[0]
 
     @staticmethod
-    def _load_bbox_and_crs(scene_id: str) -> tuple[tuple[float, float, float, float], rasterio.crs.CRS]:
-        p = SENTINEL_SCENES_FOLDERPATH / scene_id
-        if not p.exists():
-            raise ValueError()
-
-        stac_item: PySTACItem = joblib.load(p / "stac_item.joblib")
-        crs_str = stac_item.properties["proj:code"]
-        bbox_wgs84 = tuple(stac_item.bbox)
-
-        return bbox_wgs84, rasterio.crs.CRS.from_string(crs_str)
-
-    @staticmethod
     def find_from_site(site: Site) -> list["S2Item"]:
         """Load S2Items that overlap with the provided site's bbox."""
 
