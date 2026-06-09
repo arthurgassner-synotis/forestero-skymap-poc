@@ -26,6 +26,11 @@ class S2Item:
     def bbox_wgs84(self) -> tuple[float, float, float, float]:
         return tuple(self.stac_item.bbox)
 
+    @property
+    def crs(self) -> rasterio.crs.CRS:
+        crs_str = self.stac_item.properties["proj:code"]
+        return rasterio.crs.CRS.from_string(crs_str)
+
     @staticmethod
     def load_all() -> list["S2Item"]:
         s2item_filepaths = SENTINEL_SCENES_FOLDERPATH.glob("*/stac_item.joblib")
