@@ -208,5 +208,7 @@ class CroppedSnapshot:
     def features(self) -> np.ndarray:
         ndvi = np.max(self.ndvi)
         tci = np.max(self.tci)
+        nir = np.max(self.nir)
+        swir = np.max(self.swir)
 
-        return np.array([ndvi, tci])
+        return np.array([ndvi, tci, nir, swir])
