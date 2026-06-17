@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import geopandas as gpd
 import joblib
@@ -15,8 +16,12 @@ class S2Item:
     id: str
 
     @property
+    def folderpath(self) -> Path:
+        return SENTINEL_SCENES_FOLDERPATH / self.id
+
+    @property
     def stac_item(self) -> PySTACItem:
-        stac_item_filepath = SENTINEL_SCENES_FOLDERPATH / self.id / "stac_item.joblib"
+        stac_item_filepath = self.folderpath / "stac_item.joblib"
         return joblib.load(stac_item_filepath)
 
     @property
@@ -47,7 +52,7 @@ class S2Item:
         s2item_filepaths = [e for e in s2item_filepaths if e.parent.name in set(s2item_ids)]
         return [S2Item(id=e.parent.name) for e in s2item_filepaths]
 
-    def has_overlap(self, site: Site) -> bool:
+    def overlaps(self, site: Site) -> bool:
         """Whether site overlaps with this S2Item."""
 
         minx2, miny2, maxx2, maxy2 = self.bbox_wgs84
@@ -68,7 +73,7 @@ class S2Item:
 
         intersecting_s2item_ids = []
         for s2item in S2Item.load_all():
-            if s2item.has_overlap(site):
+            if s2item.overlaps(site):
                 intersecting_s2item_ids.append(s2item.id)
 
         return S2Item.load_from_ids(intersecting_s2item_ids)

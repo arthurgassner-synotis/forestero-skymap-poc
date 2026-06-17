@@ -2,3 +2,8 @@ data/
 **/__pycache__
 **/.ipynb_checkpoints
 **/cache
+**/*.nc
+**/*.parquet
+**/*.tif
+**/*.joblib
+nb/ghana_rgb_median_composite_cloudfree_2.tif
